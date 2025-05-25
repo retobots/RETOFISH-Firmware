@@ -8,7 +8,3 @@ Button& Button::getInstance() {
 void Button::setup() {
   // TODO: viết hàm khởi tạo
 }
-
-void Button::loop() {
-  // TODO: viết hàm xử lý định kỳ
-}

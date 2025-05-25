@@ -37,10 +37,7 @@ void setup() {
 
 void loop() {
   // --- Core loop modules ---
-  BlynkComm::getInstance().loop();         // Blynk + Command
-  Button::getInstance().loop();            // Nhấn nút: OLED / Feed
-  FeedingService::getInstance().loop();    // Kiểm tra trạng thái cần cho ăn
-  ScheduleManager::getInstance().loop();   // Kiểm tra lịch trình
-  StatusReporter::getInstance().loop();    // Gửi dữ liệu lên cloud
-  OledDisplay::getInstance().loop();       // Hiển thị thông tin OLED
+  FeedingService::getInstance().loop();    // Kiểm tra trạng thái cần cho ăn từ nút nhấn, app, hoặc thời gian cho ăn hẹn trước
+  ScheduleManager::getInstance().loop();   // Kiểm tra lịch trình, update lịch trình mới nếu có từ app
+  StatusReporter::getInstance().loop();    // Gửi dữ liệu lên cloud, cập nhật OLED, đèn RGB
 }

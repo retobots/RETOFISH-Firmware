@@ -1,8 +1,9 @@
 #pragma once
 
-class FeedingService {
+class FeedingService
+{
 public:
-  static FeedingService& getInstance();
+  static FeedingService &getInstance();
 
   void setup();
   void loop();
