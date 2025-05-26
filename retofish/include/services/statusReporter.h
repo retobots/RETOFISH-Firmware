@@ -1,3 +1,4 @@
+// Định kỳ gửi trạng thái lên cloud, cập nhật LED & OLED theo trạng thái hệ thống.
 #pragma once
 
 class StatusReporter {

@@ -37,7 +37,7 @@ void setup() {
 
 void loop() {
   // --- Core loop modules ---
-  FeedingService::getInstance().loop();    // Kiểm tra trạng thái cần cho ăn từ nút nhấn, app, hoặc thời gian cho ăn hẹn trước
+  FeedingService::getInstance().loop();    // Kiểm tra trạng thái cần cho ăn từ nút nhấn, app, hoặc thời gian cho ăn hẹn trước. Điều khiển động cơ cho ăn khi có yêu cầu.
   ScheduleManager::getInstance().loop();   // Kiểm tra lịch trình, update lịch trình mới nếu có từ app
-  StatusReporter::getInstance().loop();    // Gửi dữ liệu lên cloud, cập nhật OLED, đèn RGB
+  StatusReporter::getInstance().loop();    // Kiểm tra trạng thái của robot và gửi dữ liệu lên cloud, cập nhật OLED, đèn RGB
 }

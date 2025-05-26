@@ -1,3 +1,4 @@
+//Đọc điện áp pin từ ADC, kiểm tra pin yếu, hỗ trợ hiển thị % pin.
 #pragma once
 
 class Battery {

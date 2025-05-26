@@ -1,3 +1,4 @@
+// Xử lý nút nhấn vật lý, phân biệt các kiểu nhấn nút
 #pragma once
 
 class Button {
