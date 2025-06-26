@@ -39,6 +39,9 @@ void setup() {
   StatusLed::getInstance().setup(25, 26, 27);
   Button::getInstance().setup(22);
   TftDisplay::getInstance().setup(5, 2, 4);
+    screenOn = true;
+    screenOnTime = millis();
+
   StepperMotor::getInstance().setup();
   BlynkComm::getInstance().setup();
 
