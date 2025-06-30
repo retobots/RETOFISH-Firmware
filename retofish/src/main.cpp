@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <Wire.h>   // cần thêm cái này để quét I2C
-
+#include <RTClib.h>
 
 // HAL layer
 #include "hal/Battery.h"
@@ -37,7 +37,7 @@ void setup() {
   Battery::getInstance().setup();
   RTC::getInstance().setup();
   StatusLed::getInstance().setup(25, 26, 27);
-  Button::getInstance().setup(22);
+  Button::getInstance().setup(19);
   TftDisplay::getInstance().setup(5, 2, 4);
     screenOn = true;
     screenOnTime = millis();
@@ -136,12 +136,39 @@ void loop() {
 
     led.update();
 
-    // Update màn hình nếu screen ON
     auto& tft = TftDisplay::getInstance();
     if (screenOn) {
-        tft.showFullStatus(v, level, statusStr, "12:00 PM");
-    }
+    unsigned long now = millis();    
+    DateTime nowRtc = RTC::getInstance().now();
 
+    static unsigned long lastAutoFeedTime = 0;
+
+    if (ScheduleManager::getInstance().isTimeToFeed(nowRtc) &&
+    now - lastAutoFeedTime > 60000) {
+    
+    feeding = true;
+    feedingStartTime = now;
+    lastAutoFeedTime = now;
+    
+    Serial.println("Auto Feeding START");
+    StepperMotor::getInstance().feedOnce();
+}
+
+
+    const FeedTime* nextFeed = ScheduleManager::getInstance().getNextFeedTime(nowRtc);
+
+    int hour12 = nextFeed->hour % 12;
+    if (hour12 == 0) hour12 = 12;
+    const char* ampm = nextFeed->hour < 12 ? "AM" : "PM";
+
+    char timeStr[16];
+    snprintf(timeStr, sizeof(timeStr), "%02d:%02d %s", hour12, nextFeed->minute, ampm);
+
+    tft.showFullStatus(v, level, statusStr, timeStr);
+    }
     delay(20);
+    
+ 
+
 }
 
