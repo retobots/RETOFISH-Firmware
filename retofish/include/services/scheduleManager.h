@@ -20,8 +20,8 @@ private:
 
     static constexpr FeedTime schedule[] = {
         {7, 0},
-        {13, 31},
-        {18, 20}
+        {8, 31},
+        {16, 32}
     };
     static constexpr int scheduleCount = sizeof(schedule) / sizeof(schedule[0]);
 };
