@@ -6,6 +6,8 @@ public:
   static StepperMotor& getInstance();
 
   void setup();
+  void feedOnce();  // ✅ Bổ sung khai báo hàm
+
 
 private:
   StepperMotor() = default;

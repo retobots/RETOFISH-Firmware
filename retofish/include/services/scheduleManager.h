@@ -1,13 +1,27 @@
-// Kiểm tra thời gian hiện tại so với lịch đã cài để trigger việc cho ăn. Cập nhật lịch mới từ app
 #pragma once
+#include <Arduino.h>
+#include <RTClib.h>
+
+struct FeedTime {
+    uint8_t hour;
+    uint8_t minute;
+};
 
 class ScheduleManager {
 public:
-  static ScheduleManager& getInstance();
+    static ScheduleManager& getInstance();
 
-  void setup();
-  void loop();
+    void setup();                                 // Cài đặt ban đầu (nếu cần)
+    bool isTimeToFeed(const DateTime& now);       // Kiểm tra có đến giờ ăn chưa
+    const FeedTime* getNextFeedTime(const DateTime& now); // Trả về thời gian ăn kế tiếp
 
 private:
-  ScheduleManager() = default;
+    ScheduleManager() = default;
+
+    static constexpr FeedTime schedule[] = {
+        {7, 0},
+        {13, 31},
+        {18, 20}
+    };
+    static constexpr int scheduleCount = sizeof(schedule) / sizeof(schedule[0]);
 };

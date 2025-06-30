@@ -65,31 +65,63 @@ void loop() {
     Button::getInstance().update();
     auto evt = Button::getInstance().getEvent();
 
-    // Xử lý nhấn nút
-    if (evt == Button::Event::Click || evt == Button::Event::HoldShort) {
-        if (!screenOn) {
-            // Lần Click đầu tiên → bật màn
-            screenOn = true;
-            screenOnTime = now;
-            warnSpam = false;
-            Serial.println("Screen ON");
-        } else {
-            // Màn đang sáng → xử lý cho ăn hoặc cảnh báo
-            if (now - lastManualFeedTime > 30000) {  // >30s mới cho ăn
-                feeding = true;
-                feedingStartTime = now;
-                lastManualFeedTime = now;
+    // // Xử lý nhấn nút
+    // if (evt == Button::Event::Click || evt == Button::Event::HoldShort) {
+    //     if (!screenOn) {
+    //         // Lần Click đầu tiên → bật màn
+    //         screenOn = true;
+    //         screenOnTime = now;
+    //         warnSpam = false;
+    //         Serial.println("Screen ON");
+    //     } else {
+    //         // Màn đang sáng → xử lý cho ăn hoặc cảnh báo
+    //         if (now - lastManualFeedTime > 30000) {  // >30s mới cho ăn
+    //             feeding = true;
+    //             feedingStartTime = now;
+    //             lastManualFeedTime = now;
+    //             warnSpam = false;
+    //             Serial.println("Feeding START");
+    //             // StepperMotor::getInstance().feedOnce();
+    //         } else {
+    //             // Spam → cảnh báo
+    //             warnSpam = true;
+    //             warnStartTime = now;
+    //             Serial.println("Feed ignored → PLEASE WAIT");
+    //         }
+    //     }
+    // }
+
+        if (evt == Button::Event::Click) {
+            // chỉ bật màn hình
+            if (!screenOn) {
+                screenOn = true;
+                screenOnTime = now;
                 warnSpam = false;
-                Serial.println("Feeding START");
-                // StepperMotor::getInstance().feedOnce();
-            } else {
-                // Spam → cảnh báo
-                warnSpam = true;
-                warnStartTime = now;
-                Serial.println("Feed ignored → PLEASE WAIT");
+                Serial.println("Screen ON");
             }
         }
-    }
+
+        if (evt == Button::Event::DoubleClick) {
+            if (!screenOn) {
+                screenOn = true;
+                screenOnTime = now;
+                warnSpam = false;
+                Serial.println("Screen ON");
+            } else {
+                if (now - lastManualFeedTime > 30000) {
+                    feeding = true;
+                    feedingStartTime = now;
+                    lastManualFeedTime = now;
+                    warnSpam = false;
+                    Serial.println("Feeding START");
+                    StepperMotor::getInstance().feedOnce();
+                } else {
+                    warnSpam = true;
+                    warnStartTime = now;
+                    Serial.println("Feed ignored → PLEASE WAIT");
+                }
+            }
+        }
 
     // Tự tắt màn sau 15s
     if (screenOn && (now - screenOnTime > 15000)) {
