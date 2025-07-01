@@ -7,6 +7,7 @@ public:
 
     void setup();
     void feedOnce();  // Cho ăn = xoay 3 vòng
+    unsigned long getFeedDuration(); 
 
 private:
     StepperMotor() = default;

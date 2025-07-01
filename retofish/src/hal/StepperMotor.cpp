@@ -31,6 +31,10 @@ void StepperMotor::feedOnce() {
     digitalWrite(_pin3, LOW);
     digitalWrite(_pin4, LOW);
 }
+unsigned long StepperMotor::getFeedDuration() {
+    return stepsPerRevolution * 3 * 2;  // Mỗi bước delay(2ms)
+    // 2048 * 3 * 2 = 12288 ms
+}
 
 void StepperMotor::stepMotor(int step) {
     switch (step) {

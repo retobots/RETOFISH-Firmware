@@ -52,13 +52,18 @@ void FeedingService::handleButton() {
             Serial.println("Screen ON");
         } else {
             if (now - _lastManualFeedTime > 30000) {
+
                 _feeding = true;
-                _feedingStartTime = now;
-                _lastManualFeedTime = now;
                 _warnSpam = false;
                 Serial.println("Feeding START");
                 updateDisplayAndLed();
-                StepperMotor::getInstance().feedOnce();
+
+                StepperMotor::getInstance().feedOnce();  // ⏱️ mất 10-12s
+
+                // Cập nhật sau khi quay xong
+                _feedingStartTime = millis();
+                _lastManualFeedTime = _feedingStartTime;
+                _feedingDuration = StepperMotor::getInstance().getFeedDuration();
 
             } else {
                 _warnSpam = true;
@@ -78,18 +83,21 @@ void FeedingService::handleAutoFeeding() {
 
     if (ScheduleManager::getInstance().isTimeToFeed(nowRtc)) {
 
-        _feeding = true;
-        _feedingStartTime = now;
-        _lastAutoFeedTime = now;
 
+        _feeding = true;
         Serial.println("[Auto] Feeding START → cho ăn theo lịch");
 
-        // ✅ Bật màn hình nếu đang tắt
+        // Bật màn hình nếu đang tắt
         _screenOn = true;
         _screenOnTime = now;
 
-        updateDisplayAndLed();  // ✅ cập nhật màn hình và LED
-        StepperMotor::getInstance().feedOnce();
+        updateDisplayAndLed();
+        StepperMotor::getInstance().feedOnce();  // ⏱️ mất 10-12s
+
+        // Sau khi quay xong → cập nhật thời gian
+        _feedingStartTime = millis();
+        _lastAutoFeedTime = _feedingStartTime;
+        _feedingDuration = StepperMotor::getInstance().getFeedDuration();
     }
 }
 
@@ -139,9 +147,10 @@ void FeedingService::checkScreenTimeout() {
 }
 
 void FeedingService::checkFeedingTimeout() {
-    if (_feeding && (millis() - _feedingStartTime > 5000)) {
+    if (_feeding && (millis() - _feedingStartTime > 1000)) {
         _feeding = false;
         Serial.println("Feeding STOP");
+         updateDisplayAndLed();   // 🟢 Cập nhật ngay
     }
 }
 
