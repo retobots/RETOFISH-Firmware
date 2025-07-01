@@ -19,9 +19,9 @@ private:
     ScheduleManager() = default;
 
     static constexpr FeedTime schedule[] = {
-        {7, 0},
-        {8, 31},
-        {16, 32}
+        {16, 55},
+        {16, 57},
+        {17, 14}
     };
     static constexpr int scheduleCount = sizeof(schedule) / sizeof(schedule[0]);
 };

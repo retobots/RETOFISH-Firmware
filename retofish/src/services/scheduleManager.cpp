@@ -16,7 +16,8 @@ bool ScheduleManager::isTimeToFeed(const DateTime& now) {
     for (int i = 0; i < scheduleCount; ++i) {
         if (now.hour() == schedule[i].hour &&
             now.minute() == schedule[i].minute &&
-            now.second() == 0) {
+            now.second() < 5) {
+                Serial.printf("------- Đến giờ ăn ------");
             return true;
         }
     }
