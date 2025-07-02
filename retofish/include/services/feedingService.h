@@ -1,6 +1,8 @@
 #pragma once
 #include <Arduino.h>
 #include <RTClib.h>
+#include "hal/Button.h"
+
 
 class FeedingService {
 public:
@@ -12,7 +14,11 @@ public:
 private:
     FeedingService() = default;
 
+    void renderSettingPage();  // 👉 hiển thị giao diện cài đặt
+
     void handleButton();              // Xử lý nút nhấn (Click / DoubleClick)
+    void handleButton(Button::Event evt);
+    void handleSetting(int delta, Button::Event evt); 
     void handleAutoFeeding();         // Kiểm tra và cho ăn tự động khi đến giờ
     void updateDisplayAndLed();       // Hiển thị trạng thái và pin
     void checkScreenTimeout();        // Tự tắt màn hình sau 15s
@@ -31,4 +37,22 @@ private:
 
     unsigned long _lastManualFeedTime = 0;
     unsigned long _lastAutoFeedTime = 0;
+
+        // === Cấu hình bằng encoder === 2/7/2025
+    enum class SettingPage {
+        SelectSlot,
+        SetHour,
+        SetMinute,
+        SetDuration,
+        ConfirmSave
+    };
+
+    bool _inSettingMode = false;
+    SettingPage _settingPage = SettingPage::SelectSlot;
+    int _selectedSlot = 0;
+    int _hour = 7;
+    int _minute = 0;
+    int _duration = 4;
+    int _confirmIndex = 0;  // 0: Yes, 1: No
+
 };

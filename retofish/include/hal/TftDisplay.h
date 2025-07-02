@@ -14,6 +14,12 @@ public:
     void showFullStatus(float voltage, uint8_t level, const char* status, const char* nextFeedTime);
     void turnOff();  // Tắt hẳn màn
 
+    void setCursor(int16_t x, int16_t y);
+    void setTextColor(uint16_t color);
+    void setTextSize(uint8_t size);
+    void print(const char* str);
+    void clear();
+    
 private:
     TftDisplay() = default;
 
