@@ -48,7 +48,7 @@ void IRAM_ATTR Button::handleEncoderISR() {
     if (direction != 0) {
         _rotationDelta += direction;
         _rotationTotal += direction;
-        Serial.printf("Encoder: %d\n", _rotationTotal);
+        
     }
 
     _lastAB = ab;

@@ -17,20 +17,24 @@ void StepperMotor::setup() {
     digitalWrite(_pin4, LOW);
 }
 
-void StepperMotor::feedOnce() {
-    const int totalSteps = stepsPerRevolution * 3;  // 3 vòng
+void StepperMotor::feedForRounds(int numRounds) {
+    const int stepsPerRevolution = 2048;  // chuẩn với 28BYJ-48
+    int totalSteps = stepsPerRevolution * numRounds * 4 ;
+
     for (int i = 0; i < totalSteps; ++i) {
         stepMotor(_currentStep % 8);
         _currentStep++;
         delay(2);  // tốc độ quay
     }
 
-    // Tắt hết các chân sau khi quay xong
+    // Tắt motor
     digitalWrite(_pin1, LOW);
     digitalWrite(_pin2, LOW);
     digitalWrite(_pin3, LOW);
     digitalWrite(_pin4, LOW);
 }
+
+
 unsigned long StepperMotor::getFeedDuration() {
     return stepsPerRevolution * 3 * 2;  // Mỗi bước delay(2ms)
     // 2048 * 3 * 2 = 12288 ms
@@ -56,3 +60,4 @@ void StepperMotor::stepMotor(int step) {
             digitalWrite(_pin1, HIGH); digitalWrite(_pin2, LOW); digitalWrite(_pin3, LOW); digitalWrite(_pin4, HIGH); break;
     }
 }
+

@@ -52,6 +52,18 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
                     _inSettingMode = false;
                     Serial.println("⬅️ Thoát cài đặt → về màn hình chính");
                 } else {
+                    // _settingPage = SettingPage::SetHour;
+                    // renderSettingPage();
+                    const FeedTime* ft = ScheduleManager::getInstance().getSlot(_selectedSlot);
+                    if (ft) {
+                        _hour = ft->hour;
+                        _minute = ft->minute;
+                        _duration = ft->duration;
+                    } else {
+                        _hour = 7;
+                        _minute = 0;
+                        _duration = 10;
+                    }
                     _settingPage = SettingPage::SetHour;
                     renderSettingPage();
                 }
@@ -82,7 +94,7 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
 
         case SettingPage::SetDuration:
             if (delta != 0) {
-                _duration = constrain(_duration + delta, 10, 20);
+                _duration = constrain(_duration + delta, 4, 10);  // 4-10 số vòng đc chọn
                 renderSettingPage();
             }
             if (evt == Button::Event::Click) {
@@ -138,29 +150,32 @@ void FeedingService::handleButton(Button::Event evt) {
     }
 
     if (evt == Button::Event::DoubleClick) {
-        if (!_screenOn) {
-            _screenOn = true;
-            _screenOnTime = now;
+    if (!_screenOn) {
+        _screenOn = true;
+        _screenOnTime = now;
+        _warnSpam = false;
+        Serial.println("Screen ON");
+    } else {
+        if (now - _lastManualFeedTime > 30000) {
+            _feeding = true;
             _warnSpam = false;
-            Serial.println("Screen ON");
+            Serial.println("Feeding START → 4 vòng");
+            updateDisplayAndLed();
+            StepperMotor::getInstance().feedForRounds(4);  // ✅ QUAY 4 VÒNG  định
+
+            _feedingStartTime = now;
+            _lastManualFeedTime = now;
+            
+            updateDisplayAndLed();
         } else {
-            if (now - _lastManualFeedTime > 30000) {
-                _feeding = true;
-                _warnSpam = false;
-                Serial.println("Feeding START");
-                updateDisplayAndLed();
-                StepperMotor::getInstance().feedOnce();
-                _feedingStartTime = now;
-                _lastManualFeedTime = now;
-                _feedingDuration = StepperMotor::getInstance().getFeedDuration();
-            } else {
-                _warnSpam = true;
-                _warnStartTime = now;
-                Serial.println("Feed ignored → PLEASE WAIT");
-                updateDisplayAndLed();
-            }
+            _warnSpam = true;
+            _warnStartTime = now;
+            Serial.println("Feed ignored → PLEASE WAIT");
+            updateDisplayAndLed();
         }
     }
+}
+
 }
 
 void FeedingService::updateDisplayAndLed() {
@@ -210,10 +225,12 @@ void FeedingService::handleAutoFeeding() {
         _screenOn = true;
         _screenOnTime = now;
         updateDisplayAndLed();
-        StepperMotor::getInstance().feedOnce();
+        StepperMotor::getInstance().feedForRounds(_duration); 
         _feedingStartTime = now;
         _lastAutoFeedTime = now;
-        _feedingDuration = StepperMotor::getInstance().getFeedDuration();
+        
+        updateDisplayAndLed();
+
     }
 }
 
