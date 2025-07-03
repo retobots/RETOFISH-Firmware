@@ -23,13 +23,27 @@ bool ScheduleManager::isTimeToFeed(const DateTime& now) {
 }
 
 const FeedTime* ScheduleManager::getNextFeedTime(const DateTime& now) {
+
     for (int i = 0; i < 3; ++i) {
-        if (now.hour() < _slots[i].hour ||
-            (now.hour() == _slots[i].hour && now.minute() < _slots[i].minute)) {
+        const FeedTime& slot = _slots[i];
+        if (!slot.enabled) continue;  // Bỏ qua nếu tắt
+
+        if (now.hour() < slot.hour ||
+            (now.hour() == slot.hour && now.minute() < slot.minute)) {
+            return &slot;
+        }
+    }
+
+    // Nếu hôm nay không còn slot nào → tìm slot đầu tiên đã bật cho ngày mai
+    for (int i = 0; i < 3; ++i) {
+        if (_slots[i].enabled) {
             return &_slots[i];
         }
     }
-    return &_slots[0];  // hôm nay hết lịch → lấy mốc đầu tiên ngày mai
+
+    // Nếu không có slot nào bật → không có giờ kế tiếp
+    return nullptr;
+    
 }
 
 void ScheduleManager::updateSlot(int index, int hour, int minute, int duration) {
@@ -44,4 +58,10 @@ void ScheduleManager::updateSlot(int index, int hour, int minute, int duration) 
 const FeedTime* ScheduleManager::getSlot(int index) const {
     if (index < 0 || index >= 3) return nullptr;
     return &_slots[index];
+}
+
+bool ScheduleManager::toggleSlotEnabled(int index) {
+    if (index < 0 || index >= 3) return false;
+    _slots[index].enabled = !_slots[index].enabled;
+    return _slots[index].enabled;
 }

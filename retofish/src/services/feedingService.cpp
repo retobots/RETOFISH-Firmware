@@ -39,6 +39,8 @@ void FeedingService::loop() {
     updateDisplayAndLed();
     delay(20);
 }
+/// moi ne
+
 
 void FeedingService::handleSetting(int delta, Button::Event evt) {
     switch (_settingPage) {
@@ -52,8 +54,6 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
                     _inSettingMode = false;
                     Serial.println("⬅️ Thoát cài đặt → về màn hình chính");
                 } else {
-                    // _settingPage = SettingPage::SetHour;
-                    // renderSettingPage();
                     const FeedTime* ft = ScheduleManager::getInstance().getSlot(_selectedSlot);
                     if (ft) {
                         _hour = ft->hour;
@@ -67,6 +67,11 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
                     _settingPage = SettingPage::SetHour;
                     renderSettingPage();
                 }
+            }    // them if 
+                if (evt == Button::Event::DoubleClick && _selectedSlot < 3) {
+                    bool newState = ScheduleManager::getInstance().toggleSlotEnabled(_selectedSlot);
+                    Serial.printf("🔁 Slot %d → %s\n", _selectedSlot + 1, newState ? "ENABLED ✔️" : "DISABLED ❌");
+                    renderSettingPage();
             }
             break;
 
@@ -201,21 +206,26 @@ void FeedingService::updateDisplayAndLed() {
     led.update();
 
     if (_screenOn) {
+
         DateTime now = RTC::getInstance().now();
         const FeedTime* next = ScheduleManager::getInstance().getNextFeedTime(now);
 
-        int hour12 = next->hour % 12;
-        if (hour12 == 0) hour12 = 12;
-        const char* ampm = next->hour < 12 ? "AM" : "PM";
+        if (next) {
+            int hour12 = next->hour % 12;
+            if (hour12 == 0) hour12 = 12;
+            const char* ampm = next->hour < 12 ? "AM" : "PM";
 
-        char timeStr[16];
-        snprintf(timeStr, sizeof(timeStr), "%02d:%02d %s", hour12, next->minute, ampm);
+            char timeStr[16];
+            snprintf(timeStr, sizeof(timeStr), "%02d:%02d %s", hour12, next->minute, ampm);
 
-        TftDisplay::getInstance().showFullStatus(voltage, level, statusStr, timeStr);
+            TftDisplay::getInstance().showFullStatus(voltage, level, statusStr, timeStr);
+        } else {
+            TftDisplay::getInstance().showFullStatus(voltage, level, statusStr, "No setting");
+        }
     }
 }
 
-void FeedingService::handleAutoFeeding() {
+void FeedingService::handleAutoFeeding() {         /////// auto 
     DateTime nowRtc = RTC::getInstance().now();
     unsigned long now = millis();
 
@@ -229,7 +239,6 @@ void FeedingService::handleAutoFeeding() {
         _feedingStartTime = now;
         _lastAutoFeedTime = now;
         
-        updateDisplayAndLed();
 
     }
 }
@@ -255,113 +264,129 @@ void FeedingService::checkWarningTimeout() {
     }
 }
 
+
 void FeedingService::renderSettingPage() {
     auto& tft = TftDisplay::getInstance();
     tft.clear();
 
     switch (_settingPage) {
+
         case SettingPage::SelectSlot: {
             tft.setTextSize(2);
             tft.setTextColor(ST77XX_WHITE);
             tft.setCursor(20, 10);
             tft.print("Select feeding time");
 
-            const char* labels[4] = { "Feeding 1/3", "Feeding 2/3", "Feeding 3/3", "BACK" };
+            const char* labels[4] = { "Timer 1/3", "Timer 2/3", "Timer 3/3", "BACK" };
+
             for (int i = 0; i < 4; i++) {
                 tft.setCursor(40, 50 + i * 30);
                 tft.setTextColor(i == _selectedSlot ? ST77XX_YELLOW : ST77XX_WHITE);
                 tft.print(labels[i]);
+
+                // Nếu là slot 0–2 → hiển thị trạng thái enable
+                if (i < 3) {
+                    const FeedTime* ft = ScheduleManager::getInstance().getSlot(i);
+                    tft.setCursor(220, 50 + i * 30);
+                    tft.setTextColor(ft && ft->enabled ? ST77XX_GREEN : ST77XX_RED);
+                    tft.print(ft && ft->enabled ? "[V]" : "[X]");
+                }
             }
             break;
         }
 
         case SettingPage::SetHour: {
-            tft.setTextSize(2);
-            tft.setTextColor(ST77XX_WHITE);
-            tft.setCursor(20, 20);
-            tft.print("Set HOUR for");
+
 
             char label[32];
             snprintf(label, sizeof(label), "Feeding %d/3", _selectedSlot + 1);
-            tft.setCursor(20, 50);
+            tft.setCursor(20, 20);
             tft.setTextColor(ST77XX_YELLOW);
             tft.print(label);
 
             char hourStr[16];
             snprintf(hourStr, sizeof(hourStr), "Hour: %02d", _hour);
-            tft.setCursor(20, 100);
-            tft.setTextSize(3);
+            tft.setCursor(20, 70);
+            tft.setTextSize(4);
             tft.setTextColor(ST77XX_CYAN);
             tft.print(hourStr);
 
-            tft.setTextSize(1);
+            tft.setTextSize(2);
+            tft.setCursor(20, 130);
+            tft.setTextColor(ST77XX_WHITE);
+            tft.print("Rotate to adjust,");
+
+            tft.setTextSize(2);
             tft.setCursor(20, 150);
             tft.setTextColor(ST77XX_WHITE);
-            tft.print("Rotate to adjust, Click to confirm");
+            tft.print("Click to confirm");
             break;
         }
 
         case SettingPage::SetMinute: {
-            tft.setTextSize(2);
-            tft.setTextColor(ST77XX_WHITE);
-            tft.setCursor(20, 20);
-            tft.print("Set MINUTE for");
 
             char label[32];
             snprintf(label, sizeof(label), "Feeding %d/3", _selectedSlot + 1);
-            tft.setCursor(20, 50);
+            tft.setCursor(20, 20);
             tft.setTextColor(ST77XX_YELLOW);
             tft.print(label);
 
             char minStr[16];
             snprintf(minStr, sizeof(minStr), "Minute: %02d", _minute);
-            tft.setCursor(20, 100);
-            tft.setTextSize(3);
+            tft.setCursor(20, 70);
+            tft.setTextSize(4);
             tft.setTextColor(ST77XX_CYAN);
             tft.print(minStr);
 
-            tft.setTextSize(1);
+            tft.setTextSize(2);
+            tft.setCursor(20, 130);
+            tft.setTextColor(ST77XX_WHITE);
+            tft.print("Rotate to adjust,");
+
+            tft.setTextSize(2);
             tft.setCursor(20, 150);
             tft.setTextColor(ST77XX_WHITE);
-            tft.print("Rotate to adjust, Click to confirm");
+            tft.print("Click to confirm");
             break;
         }
 
         case SettingPage::SetDuration: {
-            tft.setTextSize(2);
-            tft.setTextColor(ST77XX_WHITE);
-            tft.setCursor(20, 20);
-            tft.print("Set DURATION for");
+
 
             char label[32];
             snprintf(label, sizeof(label), "Feeding %d/3", _selectedSlot + 1);
-            tft.setCursor(20, 50);
+            tft.setCursor(20, 20);
             tft.setTextColor(ST77XX_YELLOW);
             tft.print(label);
 
             char durationStr[32];
-            snprintf(durationStr, sizeof(durationStr), "Duration: %ds", _duration);
-            tft.setCursor(20, 100);
-            tft.setTextSize(3);
+            snprintf(durationStr, sizeof(durationStr), "Duration: %d ", _duration);
+            tft.setCursor(20, 70);
+            tft.setTextSize(4);
             tft.setTextColor(ST77XX_CYAN);
             tft.print(durationStr);
 
-            tft.setTextSize(1);
+            tft.setTextSize(2);
+            tft.setCursor(20, 130);
+            tft.setTextColor(ST77XX_WHITE);
+            tft.print("Rotate to adjust,");
+
+            tft.setTextSize(2);
             tft.setCursor(20, 150);
             tft.setTextColor(ST77XX_WHITE);
-            tft.print("Rotate to adjust, Click to confirm");
+            tft.print("Click to confirm");
             break;
         }
 
         case SettingPage::ConfirmSave: {
             tft.setTextSize(2);
             tft.setTextColor(ST77XX_WHITE);
-            tft.setCursor(20, 20);
+            tft.setCursor(60, 20);
             tft.print("Save this setting?");
 
             const char* options[2] = { "YES", "NO" };
             for (int i = 0; i < 2; i++) {
-                tft.setCursor(60 + i * 80, 100);
+                tft.setCursor(60 + i * 160, 100);
                 tft.setTextSize(3);
                 tft.setTextColor(i == _confirmIndex ? ST77XX_GREEN : ST77XX_WHITE);
                 tft.print(options[i]);
