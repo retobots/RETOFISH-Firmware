@@ -82,6 +82,6 @@ void StepperMotor::feedForRounds(int numRounds) {
 // unsigned long StepperMotor::getFeedDuration() {
 //     return stepsPerRevolution * 3 * 2;  // giống như trước: 3 vòng * 2ms
 // }
-
+//hjjhlkkjl
 
 
