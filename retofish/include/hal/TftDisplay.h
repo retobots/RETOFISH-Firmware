@@ -19,6 +19,7 @@ public:
     void setTextSize(uint8_t size);
     void print(const char* str);
     void clear();
+    void resetLastStatus();
     
 private:
     TftDisplay() = default;

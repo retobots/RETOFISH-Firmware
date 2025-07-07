@@ -46,14 +46,25 @@ const FeedTime* ScheduleManager::getNextFeedTime(const DateTime& now) {
     
 }
 
-void ScheduleManager::updateSlot(int index, int hour, int minute, int duration) {
+// void ScheduleManager::updateSlot(int index, int hour, int minute, int duration) {
+//     if (index < 0 || index >= 3) return;
+//     _slots[index].hour = hour;
+//     _slots[index].minute = minute;
+//     _slots[index].duration = duration;
+
+//     Serial.printf("📦 Cập nhật slot %d → %02d:%02d – %ds\n", index + 1, hour, minute, duration);
+// }
+void ScheduleManager::updateSlot(int index, int hour, int minute, int duration, bool enabled) {
     if (index < 0 || index >= 3) return;
     _slots[index].hour = hour;
     _slots[index].minute = minute;
     _slots[index].duration = duration;
+    _slots[index].enabled = enabled;  // ✅ lưu trạng thái bật/tắt slot
 
-    Serial.printf("📦 Cập nhật slot %d → %02d:%02d – %ds\n", index + 1, hour, minute, duration);
+    Serial.printf("📦 Slot %d → %02d:%02d – %ds [%s]\n",
+        index + 1, hour, minute, duration, enabled ? "ENABLED" : "DISABLED");
 }
+
 
 const FeedTime* ScheduleManager::getSlot(int index) const {
     if (index < 0 || index >= 3) return nullptr;

@@ -38,21 +38,23 @@ private:
     unsigned long _lastManualFeedTime = 0;
     unsigned long _lastAutoFeedTime = 0;
 
-        // === Cấu hình bằng encoder === 2/7/2025
+        // === Cấu hình bằng encoder === 
     enum class SettingPage {
         SelectSlot,
         SetHour,
         SetMinute,
         SetDuration,
+        SetEnabled,      
         ConfirmSave
     };
 
     bool _inSettingMode = false;
     SettingPage _settingPage = SettingPage::SelectSlot;
     int _selectedSlot = 0;
-    int _hour = 7;
+    int _hour = 0;
     int _minute = 0;
     int _duration = 4;
     int _confirmIndex = 0;  // 0: Yes, 1: No
+    bool _enabled = true;
 
 };

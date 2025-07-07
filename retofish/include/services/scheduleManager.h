@@ -28,7 +28,9 @@ public:
     const FeedTime* getSlot(int index) const;
 
     // Cập nhật 1 slot (giờ, phút, duration)
-    void updateSlot(int index, int hour, int minute, int duration);
+    // void updateSlot(int index, int hour, int minute, int duration);
+    void updateSlot(int index, int hour, int minute, int duration, bool enabled);  // ✅ SỬA THÊM enabled
+
 
     // Bật/tắt trạng thái enable của slot → trả về trạng thái sau khi đổi
     bool toggleSlotEnabled(int index);

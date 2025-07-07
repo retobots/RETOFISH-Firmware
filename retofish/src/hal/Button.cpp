@@ -69,6 +69,13 @@ void Button::update() {
             _isPressed = true;
         }
 
+        if (_lastState == LOW && _isPressed) {
+        unsigned long duration = now - _pressedTime;
+        if (duration >= 3000 && _lastEvent != Event::HoldLong) {
+            _lastEvent = Event::HoldLong; 
+        }
+    }
+
         if (_lastState == HIGH && _isPressed) {
             unsigned long duration = now - _pressedTime;
 

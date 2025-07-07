@@ -251,3 +251,9 @@ void TftDisplay::print(const char* str) {
     if (_tft) _tft->print(str);
 }
 
+void TftDisplay::resetLastStatus() {
+    _lastLine1 = "";
+    _lastStatus = "";
+    _lastNextFeed = "";
+}
+

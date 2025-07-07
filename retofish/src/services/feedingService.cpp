@@ -51,8 +51,15 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
             }
             if (evt == Button::Event::Click) {
                 if (_selectedSlot == 3) {
-                    _inSettingMode = false;
-                    Serial.println("⬅️ Thoát cài đặt → về màn hình chính");
+                    _inSettingMode = false;  //
+                    _screenOnTime = millis(); //
+                    auto& display = TftDisplay::getInstance();
+                    display.clear();
+                    // ✅ XÓA CACHE để bắt buộc vẽ lại mọi thứ
+                    display.resetLastStatus();  // bạn sẽ thêm hàm này ở bước dưới
+
+    updateDisplayAndLed();
+
                 } else {
                     const FeedTime* ft = ScheduleManager::getInstance().getSlot(_selectedSlot);
                     if (ft) {
@@ -68,11 +75,11 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
                     renderSettingPage();
                 }
             }    // them if 
-                if (evt == Button::Event::DoubleClick && _selectedSlot < 3) {
-                    bool newState = ScheduleManager::getInstance().toggleSlotEnabled(_selectedSlot);
-                    Serial.printf("🔁 Slot %d → %s\n", _selectedSlot + 1, newState ? "ENABLED ✔️" : "DISABLED ❌");
-                    renderSettingPage();
-            }
+            //     if (evt == Button::Event::DoubleClick && _selectedSlot < 3) {
+            //         bool newState = ScheduleManager::getInstance().toggleSlotEnabled(_selectedSlot);
+            //         Serial.printf("🔁 Slot %d → %s\n", _selectedSlot + 1, newState ? "ENABLED ✔️" : "DISABLED ❌");
+            //         renderSettingPage();
+            // }
             break;
 
         case SettingPage::SetHour:
@@ -103,6 +110,18 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
                 renderSettingPage();
             }
             if (evt == Button::Event::Click) {
+                _settingPage = SettingPage::SetEnabled;
+                renderSettingPage();
+            }
+            break;
+
+        case SettingPage::SetEnabled:
+            if (delta != 0) {
+                _confirmIndex = (_confirmIndex + delta + 2) % 2;  // ✅ Xoay chọn YES/NO
+                renderSettingPage();
+            }
+            if (evt == Button::Event::Click) {
+                _enabled = (_confirmIndex == 0);  // ✅ YES → bật, NO → tắt
                 _settingPage = SettingPage::ConfirmSave;
                 renderSettingPage();
             }
@@ -115,8 +134,14 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
             }
             if (evt == Button::Event::Click) {
                 if (_confirmIndex == 0) {
-                    Serial.printf("✅ Saved: Slot %d = %02d:%02d for %ds\n", _selectedSlot + 1, _hour, _minute, _duration);
-                    ScheduleManager::getInstance().updateSlot(_selectedSlot, _hour, _minute, _duration);
+                    // Serial.printf("✅ Saved: Slot %d = %02d:%02d for %ds\n", _selectedSlot + 1, _hour, _minute, _duration);
+                    // ScheduleManager::getInstance().updateSlot(_selectedSlot, _hour, _minute, _duration);
+                    
+                     Serial.printf("✅ Saved: Slot %d = %02d:%02d for %ds (%s)\n",
+                    _selectedSlot + 1, _hour, _minute, _duration, _enabled ? "ENABLED" : "DISABLED");
+
+    
+                    ScheduleManager::getInstance().updateSlot(_selectedSlot, _hour, _minute, _duration, _enabled);
                 } else {
                     Serial.printf("❌ Cancel Save\n");
                 }
@@ -142,6 +167,7 @@ void FeedingService::handleButton(Button::Event evt) {
         _duration = 10;
         _confirmIndex = 0;
         renderSettingPage();
+        
         return;
     }
 
@@ -377,6 +403,31 @@ void FeedingService::renderSettingPage() {
             tft.print("Click to confirm");
             break;
         }
+        case SettingPage::SetEnabled: {
+                tft.setTextSize(2);
+                tft.setTextColor(ST77XX_WHITE);
+                tft.setCursor(60, 20);
+                tft.print("Enable this slot?");  // ✅ Tiêu đề
+
+                const char* options[2] = { "YES", "NO" };
+                for (int i = 0; i < 2; i++) {
+                    tft.setCursor(60 + i * 160, 100);  // ✅ Giãn cách xa nhau
+                    tft.setTextSize(3);
+                    tft.setTextColor(i == _confirmIndex ? ST77XX_GREEN : ST77XX_WHITE);
+                    tft.print(options[i]);
+                }
+
+                tft.setTextSize(2);
+                tft.setCursor(20, 130);
+                tft.setTextColor(ST77XX_WHITE);
+                tft.print("Rotate to adjust,");
+
+                tft.setTextSize(2);
+                tft.setCursor(20, 150);
+                tft.setTextColor(ST77XX_WHITE);
+                tft.print("Click to confirm");
+                break;
+            }
 
         case SettingPage::ConfirmSave: {
             tft.setTextSize(2);
