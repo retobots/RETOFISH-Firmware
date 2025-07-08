@@ -56,5 +56,6 @@ private:
     int _duration = 4;
     int _confirmIndex = 0;  // 0: Yes, 1: No
     bool _enabled = true;
+    bool _lastChargingState = false;
 
 };

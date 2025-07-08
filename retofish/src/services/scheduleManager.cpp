@@ -1,5 +1,7 @@
 
 #include "services/ScheduleManager.h"
+#include <EEPROM.h>
+
 
 ScheduleManager& ScheduleManager::getInstance() {
     static ScheduleManager instance;
@@ -8,6 +10,8 @@ ScheduleManager& ScheduleManager::getInstance() {
 
 void ScheduleManager::setup() {
     // Nếu có logic tải dữ liệu từ EEPROM hoặc Blynk thì thêm vào đây
+    EEPROM.begin(128);         // ✅ Khởi động EEPROM với dung lượng 128 byte
+    loadFromEEPROM();    
 }
 
 bool ScheduleManager::isTimeToFeed(const DateTime& now) {
@@ -46,14 +50,7 @@ const FeedTime* ScheduleManager::getNextFeedTime(const DateTime& now) {
     
 }
 
-// void ScheduleManager::updateSlot(int index, int hour, int minute, int duration) {
-//     if (index < 0 || index >= 3) return;
-//     _slots[index].hour = hour;
-//     _slots[index].minute = minute;
-//     _slots[index].duration = duration;
 
-//     Serial.printf("📦 Cập nhật slot %d → %02d:%02d – %ds\n", index + 1, hour, minute, duration);
-// }
 void ScheduleManager::updateSlot(int index, int hour, int minute, int duration, bool enabled) {
     if (index < 0 || index >= 3) return;
     _slots[index].hour = hour;
@@ -75,4 +72,32 @@ bool ScheduleManager::toggleSlotEnabled(int index) {
     if (index < 0 || index >= 3) return false;
     _slots[index].enabled = !_slots[index].enabled;
     return _slots[index].enabled;
+}
+
+bool ScheduleManager::isTimeUsedByOtherSlot(int currentIndex, int hour, int minute) {
+    for (int i = 0; i < 3; ++i) {
+        if (i == currentIndex) continue;
+        if (_slots[i].enabled && _slots[i].hour == hour && _slots[i].minute == minute) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void ScheduleManager::saveToEEPROM() {
+    for (int i = 0; i < 3; ++i) {
+        EEPROM.put(i * sizeof(FeedTime), _slots[i]);
+    }
+    EEPROM.commit();  // Ghi vào flash
+}
+
+void ScheduleManager::loadFromEEPROM() {
+    for (int i = 0; i < 3; ++i) {
+        EEPROM.get(i * sizeof(FeedTime), _slots[i]);
+
+        // Kiểm tra hợp lệ, nếu không thì đặt mặc định
+        if (_slots[i].hour >= 24 || _slots[i].minute >= 60 || _slots[i].duration < 4 || _slots[i].duration > 10) {
+            _slots[i] = FeedTime(7 + i * 2, 0, 10, true);  // VD: 7h, 9h, 11h
+        }
+    }
 }

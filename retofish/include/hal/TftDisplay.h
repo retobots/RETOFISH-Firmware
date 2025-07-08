@@ -11,7 +11,7 @@ public:
 
     void setup(uint8_t csPin, uint8_t dcPin, uint8_t rstPin);
 
-    void showFullStatus(float voltage, uint8_t level, const char* status, const char* nextFeedTime);
+    // void showFullStatus(float voltage, uint8_t level, const char* status, const char* nextFeedTime);
     void turnOff();  // Tắt hẳn màn
 
     void setCursor(int16_t x, int16_t y);
@@ -21,6 +21,9 @@ public:
     void clear();
     void resetLastStatus();
     
+    void showFullStatus(float voltage, uint8_t level, const char* status, const char* nextFeedTime, bool charging);
+
+    
 private:
     TftDisplay() = default;
 
@@ -29,4 +32,7 @@ private:
     String _lastLine1 = "";
     String _lastStatus = "";
     String _lastNextFeed = "";
+    bool _lastCharging = false;  // ⚡ Theo dõi thay đổi trạng thái sạc
+
 };
+

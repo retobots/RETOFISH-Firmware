@@ -18,6 +18,8 @@ void FeedingService::setup() {
     _screenOnTime = millis();
     _lastManualFeedTime = millis() - 30000;
     _lastAutoFeedTime = 0;
+    Battery::getInstance().update(true);           // ✅ cập nhật pin ngay khi khởi động
+    updateDisplayAndLed();                     // ✅ vẽ trạng thái pin lên màn hình
 }
 
 void FeedingService::loop() {
@@ -25,11 +27,15 @@ void FeedingService::loop() {
     btn.update();
     auto evt = btn.getEvent();
     int delta = btn.getRotationDelta();
+    // Battery::getInstance().update(true); 
+    Battery::getInstance().update(false);
 
     if (_inSettingMode) {
         handleSetting(delta, evt);
         return;
     }
+
+
 
     handleButton(evt);
     handleAutoFeeding();
@@ -37,6 +43,11 @@ void FeedingService::loop() {
     checkFeedingTimeout();
     checkWarningTimeout();
     updateDisplayAndLed();
+    bool currentCharging = Battery::getInstance().isCharging();
+    if (currentCharging != _lastChargingState) {
+        _lastChargingState = currentCharging;
+        updateDisplayAndLed();  // ⚡️ cập nhật khi cắm/rút sạc
+    }
     delay(20);
 }
 /// moi ne
@@ -58,7 +69,7 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
                     // ✅ XÓA CACHE để bắt buộc vẽ lại mọi thứ
                     display.resetLastStatus();  // bạn sẽ thêm hàm này ở bước dưới
 
-    updateDisplayAndLed();
+                    updateDisplayAndLed();
 
                 } else {
                     const FeedTime* ft = ScheduleManager::getInstance().getSlot(_selectedSlot);
@@ -132,22 +143,71 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
                 _confirmIndex = (_confirmIndex + delta + 2) % 2;
                 renderSettingPage();
             }
-            if (evt == Button::Event::Click) {
-                if (_confirmIndex == 0) {
-                    // Serial.printf("✅ Saved: Slot %d = %02d:%02d for %ds\n", _selectedSlot + 1, _hour, _minute, _duration);
-                    // ScheduleManager::getInstance().updateSlot(_selectedSlot, _hour, _minute, _duration);
-                    
-                     Serial.printf("✅ Saved: Slot %d = %02d:%02d for %ds (%s)\n",
-                    _selectedSlot + 1, _hour, _minute, _duration, _enabled ? "ENABLED" : "DISABLED");
 
-    
-                    ScheduleManager::getInstance().updateSlot(_selectedSlot, _hour, _minute, _duration, _enabled);
-                } else {
-                    Serial.printf("❌ Cancel Save\n");
+            // if (evt == Button::Event::Click) {
+            //     if (_confirmIndex == 0) {
+            //         // ✅ Kiểm tra trùng giờ
+            //         bool isDuplicate = ScheduleManager::getInstance().isTimeUsedByOtherSlot(_selectedSlot, _hour, _minute);
+            //         if (isDuplicate) {
+            //             Serial.println("⚠️ Trùng giờ với slot khác → Không lưu");
+
+            //             auto& tft = TftDisplay::getInstance();
+            //             tft.clear();  // ✅ xoá màn hình cũ
+            //             tft.setTextSize(3);
+            //             tft.setTextColor(ST77XX_RED);
+            //             tft.setCursor(10, 70);
+            //             tft.print("Time already used");
+            //             delay(2000);
+            //             _settingPage = SettingPage::SetHour; 
+            //             renderSettingPage();  // quay lại
+            //             return;
+            //         }
+
+            //         Serial.printf("✅ Saved: Slot %d = %02d:%02d for %ds (%s)\n",
+            //             _selectedSlot + 1, _hour, _minute, _duration, _enabled ? "ENABLED" : "DISABLED");
+
+            //         ScheduleManager::getInstance().updateSlot(_selectedSlot, _hour, _minute, _duration, _enabled);
+            //     } else {
+            //         Serial.printf("❌ Cancel Save\n");
+            //     }
+
+            //     _settingPage = SettingPage::SelectSlot;
+            //     renderSettingPage();
+            // }
+            if (evt == Button::Event::Click) {
+                    if (_confirmIndex == 0) {
+                        // ✅ Kiểm tra trùng giờ
+                        bool isDuplicate = ScheduleManager::getInstance().isTimeUsedByOtherSlot(_selectedSlot, _hour, _minute);
+                        if (isDuplicate) {
+                            Serial.println("⚠️ Trùng giờ với slot khác → Không lưu");
+
+                            auto& tft = TftDisplay::getInstance();
+                            tft.clear();
+                            tft.setTextSize(3);
+                            tft.setTextColor(ST77XX_RED);
+                            tft.setCursor(10, 70);
+                            tft.print("Time already used");
+                            delay(2000);
+                            _settingPage = SettingPage::SetHour;
+                            renderSettingPage();
+                            return;
+                        }
+
+                        Serial.printf("✅ Saved: Slot %d = %02d:%02d for %ds (%s)\n",
+                            _selectedSlot + 1, _hour, _minute, _duration, _enabled ? "ENABLED" : "DISABLED");
+
+                        ScheduleManager::getInstance().updateSlot(_selectedSlot, _hour, _minute, _duration, _enabled);
+
+                        // ✅ Lưu vào EEPROM ngay sau khi cập nhật
+                        ScheduleManager::getInstance().saveToEEPROM();
+                    } else {
+                        Serial.printf("❌ Cancel Save\n");
+                    }
+
+                    _settingPage = SettingPage::SelectSlot;
+                    renderSettingPage();
                 }
-                _settingPage = SettingPage::SelectSlot;
-                renderSettingPage();
-            }
+
             break;
     }
 }
@@ -244,9 +304,13 @@ void FeedingService::updateDisplayAndLed() {
             char timeStr[16];
             snprintf(timeStr, sizeof(timeStr), "%02d:%02d %s", hour12, next->minute, ampm);
 
-            TftDisplay::getInstance().showFullStatus(voltage, level, statusStr, timeStr);
+           
+            TftDisplay::getInstance().showFullStatus(voltage, level, statusStr, timeStr, Battery::getInstance().isCharging());
+
         } else {
-            TftDisplay::getInstance().showFullStatus(voltage, level, statusStr, "No setting");
+      
+            TftDisplay::getInstance().showFullStatus(voltage, level, statusStr, "No setting", Battery::getInstance().isCharging());
+
         }
     }
 }
@@ -305,19 +369,33 @@ void FeedingService::renderSettingPage() {
 
             const char* labels[4] = { "Timer 1/3", "Timer 2/3", "Timer 3/3", "BACK" };
 
-            for (int i = 0; i < 4; i++) {
-                tft.setCursor(40, 50 + i * 30);
-                tft.setTextColor(i == _selectedSlot ? ST77XX_YELLOW : ST77XX_WHITE);
-                tft.print(labels[i]);
 
-                // Nếu là slot 0–2 → hiển thị trạng thái enable
-                if (i < 3) {
-                    const FeedTime* ft = ScheduleManager::getInstance().getSlot(i);
-                    tft.setCursor(220, 50 + i * 30);
-                    tft.setTextColor(ft && ft->enabled ? ST77XX_GREEN : ST77XX_RED);
-                    tft.print(ft && ft->enabled ? "[V]" : "[X]");
+            for (int i = 0; i < 4; i++) {
+                    tft.setCursor(20, 50 + i * 30);
+                    tft.setTextColor(i == _selectedSlot ? ST77XX_YELLOW : ST77XX_WHITE);
+                    tft.print(labels[i]);
+
+                    if (i < 3) {
+                        const FeedTime* ft = ScheduleManager::getInstance().getSlot(i);
+
+                        // Hiển thị thời gian nếu có, ngược lại là "--:--"
+                        char timeStr[8];
+                        if (ft && ft->enabled) {
+                            snprintf(timeStr, sizeof(timeStr), "%02d:%02d", ft->hour, ft->minute);
+                        } else {
+                            snprintf(timeStr, sizeof(timeStr), "--:--");
+                        }
+
+                        tft.setCursor(160, 50 + i * 30);
+                        tft.print(timeStr);
+
+                        tft.setCursor(240, 50 + i * 30);
+                        tft.setTextColor(ft && ft->enabled ? ST77XX_GREEN : ST77XX_RED);
+                        tft.print(ft && ft->enabled ? "[V]" : "[X]");
+                    }
                 }
-            }
+
+
             break;
         }
 

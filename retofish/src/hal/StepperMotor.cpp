@@ -12,7 +12,7 @@ void StepperMotor::setup() {
 
 void StepperMotor::feedForRounds(int numRounds) {
     int totalSteps = stepsPerRevolution * numRounds * 2;
-    _stepper.step(-totalSteps);  // quay thuận
+    _stepper.step(-totalSteps);  // cùng chiều kim đồng hồ 
 }
 
 // unsigned long StepperMotor::getFeedDuration() {

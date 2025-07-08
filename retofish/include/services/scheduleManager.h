@@ -34,6 +34,14 @@ public:
 
     // Bật/tắt trạng thái enable của slot → trả về trạng thái sau khi đổi
     bool toggleSlotEnabled(int index);
+    // kiểm tra trùng lập 
+    bool isTimeUsedByOtherSlot(int currentIndex, int hour, int minute);
+
+    void saveToEEPROM();
+    void loadFromEEPROM();
+
+
+
 
 private:
     ScheduleManager() = default;
@@ -43,5 +51,7 @@ private:
         {7, 0, 10, true},
         {11, 30, 10, true},
         {18, 0, 10, true}
+
+    
     };
 };
