@@ -8,10 +8,8 @@
 class TftDisplay {
 public:
     static TftDisplay& getInstance();
+
     void setup(uint8_t csPin, uint8_t dcPin, uint8_t rstPin);
- 
-
-
 
     // void showFullStatus(float voltage, uint8_t level, const char* status, const char* nextFeedTime);
     void turnOff();  // Tắt hẳn màn

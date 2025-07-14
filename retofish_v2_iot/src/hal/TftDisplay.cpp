@@ -36,42 +36,25 @@ void drawBMPFromArray(Adafruit_ST7789* tft, const unsigned char *bmp, uint32_t b
     }
 }
 
-// void TftDisplay::setup( uint8_t csPin ,uint8_t dcPin, uint8_t rstPin){
-
-//     if (_tft == nullptr) {
-//         _tft = new Adafruit_ST7789(csPin, dcPin, rstPin);
-//         _tft->init(172, 320);
-//         _tft->setRotation(3);
-//         _tft->fillScreen(ST77XX_BLACK);
-
-//         // ✅ Hiển thị logo trong 2 giây
-//         drawBMPFromArray(_tft, logo_bmp, logo_bmp_len, 0, 0);
-//         delay(2000);
-
-//         _tft->fillScreen(ST77XX_BLACK);
-//     }
-// }
 void TftDisplay::setup(uint8_t csPin, uint8_t dcPin, uint8_t rstPin) {
     if (_tft == nullptr) {
-        // ⚠️ BẮT BUỘC phải khởi tạo SPI đúng chân trước
-        SPI.begin(18, -1, 23, csPin);  // SCK=18, MISO=-1 (bỏ qua), MOSI=23, CS=csPin
-
-        // ✅ Dùng constructor cho SPI custom
-        _tft = new Adafruit_ST7789(&SPI, csPin, dcPin, rstPin);
-        _tft->init(172, 320);  // kích thước thật màn ST7789 1.47 inch
+        _tft = new Adafruit_ST7789(csPin, dcPin, rstPin);
+        
+        _tft->init(172, 320);
         _tft->setRotation(3);
         _tft->fillScreen(ST77XX_BLACK);
 
         // ✅ Hiển thị logo trong 2 giây
         drawBMPFromArray(_tft, logo_bmp, logo_bmp_len, 0, 0);
         delay(2000);
+
         _tft->fillScreen(ST77XX_BLACK);
     }
 }
 
 
 
-void TftDisplay::showFullStatus(float voltage, uint8_t level, const char* status, const char* nextFeedTime, bool charging){
+   void TftDisplay::showFullStatus(float voltage, uint8_t level, const char* status, const char* nextFeedTime, bool charging){
 
     if (_tft == nullptr) return;
 

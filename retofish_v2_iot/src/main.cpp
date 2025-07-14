@@ -36,11 +36,8 @@ void setup() {
   // --- Hardware initialization ---
   Battery::getInstance().setup();
   RTC::getInstance().setup();
-  // StatusLed::getInstance().setup(25, 26, 27);
-  StatusLed::getInstance().setup(12, 13, 15);
-  // Button::getInstance().setup(19,17,16);
-  Button::getInstance().setup(19,34,35);
-  
+  StatusLed::getInstance().setup(25, 26, 27);
+  Button::getInstance().setup(19,17,16);
   TftDisplay::getInstance().setup(5, 2, 4);
     screenOn = true;
     screenOnTime = millis();
@@ -55,6 +52,9 @@ void setup() {
 
   lastManualFeedTime = millis() - 30000;
  
+
+
+
 }
 
 

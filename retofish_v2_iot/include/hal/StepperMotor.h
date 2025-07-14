@@ -15,7 +15,5 @@ private:
     StepperMotor() = default;
 
     static const int stepsPerRevolution = 2048;
-    // Stepper _stepper = Stepper(stepsPerRevolution, 33, 12, 22, 13);  // IN1, IN3, IN2, IN4
-    Stepper _stepper = Stepper(stepsPerRevolution, 26, 25, 33, 32);  // IN1, IN3, IN2, IN4
-
+    Stepper _stepper = Stepper(stepsPerRevolution, 33, 12, 22, 13);  // IN1, IN3, IN2, IN4
 };

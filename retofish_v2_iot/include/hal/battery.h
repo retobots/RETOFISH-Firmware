@@ -19,8 +19,8 @@ private:
     Battery() = default;
 
     uint8_t _adcPin = 36; // VP – đo vbat_measure
-    uint8_t _enablePin = 27; // bật đo pin _EN
-    // uint8_t _chrgPin = 34; bỏ cái báo sạc 
+    uint8_t _enablePin = 5;
+    uint8_t _chrgPin = 34;
     float _voltageDivider = 2.0;
 
     float _voltage = 0;

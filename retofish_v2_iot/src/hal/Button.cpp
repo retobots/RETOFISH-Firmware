@@ -38,8 +38,8 @@ void Button::setup(uint8_t swPin, uint8_t pinA, uint8_t pinB) {
 }
 
 void IRAM_ATTR Button::handleEncoderISR() {
-    uint8_t a = digitalRead(34);  
-    uint8_t b = digitalRead(35);  
+    uint8_t a = digitalRead(17);  // A = D17
+    uint8_t b = digitalRead(16);  // B = D16
     uint8_t ab = (a << 1) | b;
 
     uint8_t index = (_lastAB << 2) | ab;

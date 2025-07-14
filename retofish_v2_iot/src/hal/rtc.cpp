@@ -23,7 +23,7 @@ void RTC::setup() {
     }
 
     //  Chỉ mở dòng này để chỉnh giờ bằng tay 1 lần, sau đó COMMENT lại
-    setTime(2025, 7, 14, 16, 14, 0);  // Ví dụ chỉnh giờ thủ công
+    setTime(2025, 6, 30, 17, 13, 0);  // Ví dụ chỉnh giờ thủ công
 }
 
 DateTime RTC::now() {

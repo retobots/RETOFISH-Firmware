@@ -7,6 +7,8 @@
 #include "hal/StepperMotor.h"
 #include "hal/StatusLed.h"
 #include "services/ScheduleManager.h"
+#include "hal/BlynkComm.h"  // ✅ thêm dòng này
+
 
 FeedingService& FeedingService::getInstance() {
     static FeedingService instance;
@@ -23,6 +25,7 @@ void FeedingService::setup() {
 }
 
 void FeedingService::loop() {
+    BlynkComm::getInstance().loop(); 
     Button& btn = Button::getInstance();
     btn.update();
     auto evt = btn.getEvent();
@@ -43,12 +46,11 @@ void FeedingService::loop() {
     checkFeedingTimeout();
     checkWarningTimeout();
     updateDisplayAndLed();
-
-    // bool currentCharging = Battery::getInstance().isCharging();
-    // if (currentCharging != _lastChargingState) {
-    //     _lastChargingState = currentCharging;
-    //     updateDisplayAndLed();  // ⚡️ cập nhật khi cắm/rút sạc
-    // }
+    bool currentCharging = Battery::getInstance().isCharging();
+    if (currentCharging != _lastChargingState) {
+        _lastChargingState = currentCharging;
+        updateDisplayAndLed();  // ⚡️ cập nhật khi cắm/rút sạc
+    }
     delay(20);
 }
 /// moi ne
@@ -306,11 +308,13 @@ void FeedingService::updateDisplayAndLed() {
             snprintf(timeStr, sizeof(timeStr), "%02d:%02d %s", hour12, next->minute, ampm);
 
            
-            // TftDisplay::getInstance().showFullStatus(voltage, level, statusStr, timeStr, Battery::getInstance().isCharging());
-            TftDisplay::getInstance().showFullStatus(voltage, level, statusStr, timeStr, false);
+            TftDisplay::getInstance().showFullStatus(voltage, level, statusStr, timeStr, Battery::getInstance().isCharging());
+            BlynkComm::getInstance().reportStatus(statusStr, next ? timeStr : "No setting");
+
         } else {
       
             TftDisplay::getInstance().showFullStatus(voltage, level, statusStr, "No setting", Battery::getInstance().isCharging());
+            BlynkComm::getInstance().reportStatus(statusStr, "No setting");
 
         }
     }

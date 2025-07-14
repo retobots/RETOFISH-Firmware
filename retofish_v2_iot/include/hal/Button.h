@@ -1,5 +1,4 @@
 
-
 #pragma once
 #include <Arduino.h>
 
@@ -15,7 +14,7 @@ public:
 
     static Button& getInstance();
 
-    void setup(uint8_t swPin = 19, uint8_t pinA = 34, uint8_t pinB = 35);
+    void setup(uint8_t swPin = 19, uint8_t pinA = 17, uint8_t pinB = 16);
     void update();  // Xử lý nút nhấn
     Event getEvent();
 
