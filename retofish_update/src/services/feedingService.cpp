@@ -86,8 +86,12 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
                     _settingPage = SettingPage::SetHour;
                     renderSettingPage();
                 }
-            }   
-
+            }    // them if 
+            //     if (evt == Button::Event::DoubleClick && _selectedSlot < 3) {
+            //         bool newState = ScheduleManager::getInstance().toggleSlotEnabled(_selectedSlot);
+            //         Serial.printf("🔁 Slot %d → %s\n", _selectedSlot + 1, newState ? "ENABLED ✔️" : "DISABLED ❌");
+            //         renderSettingPage();
+            // }
             break;
 
         case SettingPage::SetHour:
@@ -199,14 +203,36 @@ void FeedingService::handleButton(Button::Event evt) {
         return;
     }
 
-    if (evt == Button::Event::Click) {
-        if (!_screenOn) {
-            _screenOn = true;
-            _screenOnTime = now;
-            _warnSpam = false;
-            Serial.println("Screen ON");
-        }
+    // if (evt == Button::Event::Click) {
+    //     if (!_screenOn) {
+    //         _screenOn = true;
+    //         _screenOnTime = now;
+    //         _warnSpam = false;
+    //         Serial.println("Screen ON");
+    //     }
+    // }
+if (evt == Button::Event::Click) {
+    if (!_screenOn) {
+        // Gọi phương thức bật màn hình và đèn nền từ instance của TftDisplay
+        TftDisplay::getInstance().turnOnScreen(); 
+
+        _screenOn = true;
+        
+        _warnSpam = false;
+        
+        _screenOnTime = millis(); //
+        auto& display = TftDisplay::getInstance();
+        display.clear();
+        // ✅ XÓA CACHE để bắt buộc vẽ lại mọi thứ
+        display.resetLastStatus();  // bạn sẽ thêm hàm này ở bước dưới
+
+        updateDisplayAndLed();
+        Serial.println("Screen ON by Button");
     }
+}
+
+
+
 
     if (evt == Button::Event::DoubleClick) {
     if (!_screenOn) {
@@ -215,7 +241,6 @@ void FeedingService::handleButton(Button::Event evt) {
         _warnSpam = false;
         Serial.println("Screen ON");
     } else {
-        
 
         if (now - _lastManualFeedTime > 30000) {
             _feeding = true;
@@ -303,13 +328,24 @@ void FeedingService::handleAutoFeeding() {         /////// auto
     }
 }
 
+// void FeedingService::checkScreenTimeout() {
+//     if (_inSettingMode) return;
+//     if (_screenOn && (millis() - _screenOnTime > 15000)) {
+//         _screenOn = false;
+//         TftDisplay::getInstance().turnOff();
+//     }
+// }
+
 void FeedingService::checkScreenTimeout() {
     if (_inSettingMode) return;
+
     if (_screenOn && (millis() - _screenOnTime > 15000)) {
         _screenOn = false;
-        TftDisplay::getInstance().turnOff();
+        digitalWrite(14, LOW); // Tắt đèn nền sau 15 giây không có hoạt động
+        TftDisplay::getInstance().turnOffScreen(); // Tắt màn hình
     }
 }
+
 
 void FeedingService::checkFeedingTimeout() {
     if (_feeding && (millis() - _feedingStartTime > _feedingDuration)) {

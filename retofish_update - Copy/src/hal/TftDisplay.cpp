@@ -37,24 +37,48 @@ void drawBMPFromArray(Adafruit_ST7789* tft, const unsigned char *bmp, uint32_t b
 }
 
 
-void TftDisplay::setup(uint8_t csPin, uint8_t dcPin, uint8_t rstPin) {
+// void TftDisplay::setup(uint8_t csPin, uint8_t dcPin, uint8_t rstPin, uint8_t backlightPin) {
+//     if (_tft == nullptr) {
+//         // Bắt buộc phải khởi tạo SPI đúng chân
+//         SPI.begin(18, -1, 23, csPin);  // SCK=18, MISO=-1 (bỏ qua), MOSI=23, CS=csPin
+
+//         _tft = new Adafruit_ST7789(&SPI, csPin, dcPin, rstPin);
+//         _tft->init(172, 320);  // kích thước thật màn ST7789 1.47 inch
+//         _tft->setRotation(3);
+//         _tft->fillScreen(ST77XX_BLACK);
+
+//         // Thiết lập chân đèn nền
+//         pinMode(backlightPin, OUTPUT);
+//         digitalWrite(backlightPin, HIGH); // Bật đèn nền khi khởi động
+
+//         // Hiển thị logo trong 2 giây
+//         drawBMPFromArray(_tft, logo_bmp, logo_bmp_len, 0, 0);
+//         delay(2000);
+//         _tft->fillScreen(ST77XX_BLACK);
+//     }
+// }
+
+void TftDisplay::setup(uint8_t csPin, uint8_t dcPin, uint8_t rstPin, uint8_t backlightPin) {
     if (_tft == nullptr) {
-        // ⚠️ BẮT BUỘC phải khởi tạo SPI đúng chân trước
+        // Bắt buộc phải khởi tạo SPI đúng chân
         SPI.begin(18, -1, 23, csPin);  // SCK=18, MISO=-1 (bỏ qua), MOSI=23, CS=csPin
 
-        // ✅ Dùng constructor cho SPI custom
         _tft = new Adafruit_ST7789(&SPI, csPin, dcPin, rstPin);
         _tft->init(172, 320);  // kích thước thật màn ST7789 1.47 inch
         _tft->setRotation(3);
         _tft->fillScreen(ST77XX_BLACK);
 
-        // ✅ Hiển thị logo trong 2 giây
+        // Thiết lập chân đèn nền
+        _backlightPin = backlightPin;  // Lưu lại giá trị backlightPin
+        pinMode(_backlightPin, OUTPUT);
+        digitalWrite(_backlightPin, HIGH); // Bật đèn nền khi khởi động
+
+        // Hiển thị logo trong 2 giây
         drawBMPFromArray(_tft, logo_bmp, logo_bmp_len, 0, 0);
         delay(2000);
         _tft->fillScreen(ST77XX_BLACK);
     }
 }
-
 
 
 void TftDisplay::showFullStatus(float voltage, uint8_t level, const char* status, const char* nextFeedTime, bool charging){
@@ -63,8 +87,6 @@ void TftDisplay::showFullStatus(float voltage, uint8_t level, const char* status
 
     char line1[64];
     snprintf(line1, sizeof(line1), "Pin:%.2fv %d%%", voltage, level);
-
-
 
 
         // if (String(line1) != _lastLine1) {
@@ -153,14 +175,14 @@ void TftDisplay::showFullStatus(float voltage, uint8_t level, const char* status
 
 }
 
-void TftDisplay::turnOff() {
-    if (_tft) {
-        _tft->fillScreen(ST77XX_BLACK);
-        _lastLine1 = "";
-        _lastStatus = "";
-        _lastNextFeed = "";
-    }
-}
+// void TftDisplay::turnOff() {
+//     if (_tft) {
+//         _tft->fillScreen(ST77XX_BLACK);
+//         _lastLine1 = "";
+//         _lastStatus = "";
+//         _lastNextFeed = "";
+//     }
+// }
 
 // === Các hàm tiện ích để vẽ trong chế độ cấu hình ===
 void TftDisplay::clear() {
@@ -189,3 +211,24 @@ void TftDisplay::resetLastStatus() {
     _lastNextFeed = "";
 }
 
+void TftDisplay::turnOffScreen() {
+    digitalWrite(_backlightPin, LOW);  // Tắt đèn nền
+    _screenOn = false;
+    Serial.println("Screen OFF");
+}
+
+void TftDisplay::turnOnScreen() {
+   
+    if (_backlightPin != 0) {
+        digitalWrite(_backlightPin, HIGH);  // Bật đèn nền
+        Serial.println("Backlight turned ON");
+    } else {
+        Serial.println("Error: Backlight pin not set!");
+    }
+    // _screenOn = true;
+    // _screenOnTime = millis();
+    // Serial.println("Screen ON");
+
+    // Optionally clear screen
+    _tft->fillScreen(ST77XX_BLACK);
+}

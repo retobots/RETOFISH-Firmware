@@ -22,7 +22,7 @@ void RTC::setup() {
         rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));  // dùng thời gian biên dịch
     }
 
-    //  Chỉ mở dòng này để chỉnh giờ bằng tay 1 lần, sau đó COMMENT lại
+    // //  Chỉ mở dòng này để chỉnh giờ bằng tay 1 lần, sau đó COMMENT lại
     // setTime(2025, 7, 14, 17, 06, 0);  // Ví dụ chỉnh giờ thủ công
 }
 
