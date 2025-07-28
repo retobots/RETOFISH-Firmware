@@ -44,25 +44,20 @@ void FeedingService::loop() {
     checkWarningTimeout();
     updateDisplayAndLed();
 
-    // bool currentCharging = Battery::getInstance().isCharging();
-    // if (currentCharging != _lastChargingState) {
-    //     _lastChargingState = currentCharging;
-    //     updateDisplayAndLed();  // ⚡️ cập nhật khi cắm/rút sạc
-    // }
+
     delay(20);
 }
-/// moi ne
-
 
 void FeedingService::handleSetting(int delta, Button::Event evt) {
     switch (_settingPage) {
-        case SettingPage::SelectSlot:
+        case SettingPage::NewPage:
+
             if (delta != 0) {
-                _selectedSlot = constrain(_selectedSlot + delta, 0, 3); // 0-2: slot, 3: back
-                renderSettingPage();
+            _selectedSlot = constrain(_selectedSlot + delta, 0, 2); // 2: back
+            renderSettingPage();
             }
             if (evt == Button::Event::Click) {
-                if (_selectedSlot == 3) {
+                if (_selectedSlot == 2) {
                     _inSettingMode = false;  //
                     _screenOnTime = millis(); //
                     auto& display = TftDisplay::getInstance();
@@ -71,6 +66,82 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
                     display.resetLastStatus();  // bạn sẽ thêm hàm này ở bước dưới
 
                     updateDisplayAndLed();
+                }
+            }
+
+            // Nếu người dùng nhấn nút xác nhận (Click)
+            if (evt == Button::Event::Click) {
+                if (_selectedSlot == 0) {
+                    // Chọn "Select Feeding Time" → Quay lại trang SelectSlot
+                    _settingPage = SettingPage::SelectSlot;
+                    renderSettingPage();
+                } else if (_selectedSlot == 1) {
+                    // Chọn "Setting Time Now" → Cài đặt thời gian thực
+                    _settingPage = SettingPage::SetHour_1; // Đi tới cài đặt giờ thực
+                    _hour = RTC::getInstance().now().hour();  // Đặt giờ từ RTC hiện tại
+                    renderSettingPage();  // Hiển thị trang chỉnh giờ
+                }
+            }
+            break;
+
+        case SettingPage::SetHour_1:
+            if (delta != 0) {
+                _hour = (_hour + delta + 24) % 24; // Cập nhật giờ khi xoay encoder
+                renderSettingPage();
+            }
+            if (evt == Button::Event::Click) {
+                // Nhấn để xác nhận giờ và chuyển sang chỉnh phút
+                _settingPage = SettingPage::SetMinute_1;
+                renderSettingPage();
+            }
+            break;
+
+        case SettingPage::SetMinute_1:
+            if (delta != 0) {
+                _minute = (_minute + delta + 60) % 60; // Cập nhật phút khi xoay encoder
+                renderSettingPage();
+            }
+            if (evt == Button::Event::Click) {
+                // Nhấn để xác nhận phút và chuyển đến trang xác nhận lưu
+                _settingPage = SettingPage::SetSave;
+                renderSettingPage();
+            }
+            break;
+
+        case SettingPage::SetSave:
+            if (delta != 0) {
+                _confirmIndex = (_confirmIndex + delta + 2) % 2;  // Chọn "Yes" hoặc "No"
+                renderSettingPage();
+            }
+            if (evt == Button::Event::Click) {
+                if (_confirmIndex == 0) {
+                    // Chọn "Yes" → Lưu thời gian vào RTC
+                    
+                    RTC::getInstance().setTime(2025, 7, 24, _hour, _minute, 0);
+                    Serial.printf("Time set to: %02d:%02d\n", _hour, _minute);
+                }
+                // Quay lại trang NewPage sau khi lưu hoặc huỷ
+                _settingPage = SettingPage::NewPage;
+                renderSettingPage();
+            }
+            break;
+        case SettingPage::SelectSlot:
+            if (delta != 0) {
+                _selectedSlot = constrain(_selectedSlot + delta, 0, 3); // 0-2: slot, 3: back
+                renderSettingPage();
+            }
+            if (evt == Button::Event::Click) {
+                if (_selectedSlot == 3) {
+                    // _inSettingMode = false;  //
+                    // _screenOnTime = millis(); //
+                    // auto& display = TftDisplay::getInstance();
+                    // display.clear();
+                    // // ✅ XÓA CACHE để bắt buộc vẽ lại mọi thứ
+                    // display.resetLastStatus();  // bạn sẽ thêm hàm này ở bước dưới
+
+                    // updateDisplayAndLed();
+                    _settingPage = SettingPage::NewPage;
+                    renderSettingPage();
 
                 } else {
                     const FeedTime* ft = ScheduleManager::getInstance().getSlot(_selectedSlot);
@@ -184,13 +255,14 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
     }
 }
 
+
 void FeedingService::handleButton(Button::Event evt) {
     unsigned long now = millis();
 
     if (evt == Button::Event::HoldLong) {
         Serial.println("Vao che do setting");
         _inSettingMode = true;
-        _settingPage = SettingPage::SelectSlot;
+        _settingPage = SettingPage::NewPage;
         _screenOn = true;
         _screenOnTime = now;
         _selectedSlot = 0;
@@ -203,14 +275,7 @@ void FeedingService::handleButton(Button::Event evt) {
         return;
     }
 
-    // if (evt == Button::Event::Click) {
-    //     if (!_screenOn) {
-    //         _screenOn = true;
-    //         _screenOnTime = now;
-    //         _warnSpam = false;
-    //         Serial.println("Screen ON");
-    //     }
-    // }
+
 if (evt == Button::Event::Click) {
     if (!_screenOn) {
         // Gọi phương thức bật màn hình và đèn nền từ instance của TftDisplay
@@ -310,31 +375,40 @@ void FeedingService::updateDisplayAndLed() {
     }
 }
 
+
 void FeedingService::handleAutoFeeding() {         /////// auto 
     DateTime nowRtc = RTC::getInstance().now();
     unsigned long now = millis();
 
     if (ScheduleManager::getInstance().isTimeToFeed(nowRtc)) {
+        // Bật màn hình khi bắt đầu cho ăn tự động
+        TftDisplay::getInstance().turnOnScreen(); 
         _feeding = true;
         Serial.println("[Auto] Feeding START");
+
         _screenOn = true;
-        _screenOnTime = now;
-        updateDisplayAndLed();
+        _screenOnTime = millis();
+        auto& display = TftDisplay::getInstance();
+        display.clear();
+        
+        // Xóa cache để bắt buộc vẽ lại mọi thứ
+        display.resetLastStatus(); 
+
+        // Hiển thị trạng thái "Đang cho ăn"
+        updateDisplayAndLed();  // Cập nhật màn hình hiển thị trạng thái
+
+        // Thực hiện cho ăn tự động theo số vòng đã chọn
         StepperMotor::getInstance().feedForRounds(_duration); 
+        
         _feedingStartTime = now;
         _lastAutoFeedTime = now;
-        
 
+        Serial.println("Screen ON by Auto");
     }
 }
 
-// void FeedingService::checkScreenTimeout() {
-//     if (_inSettingMode) return;
-//     if (_screenOn && (millis() - _screenOnTime > 15000)) {
-//         _screenOn = false;
-//         TftDisplay::getInstance().turnOff();
-//     }
-// }
+
+
 
 void FeedingService::checkScreenTimeout() {
     if (_inSettingMode) return;
@@ -361,11 +435,88 @@ void FeedingService::checkWarningTimeout() {
 }
 
 
+
 void FeedingService::renderSettingPage() {
     auto& tft = TftDisplay::getInstance();
     tft.clear();
 
     switch (_settingPage) {
+
+
+        case SettingPage::NewPage: {
+            tft.setTextSize(2);
+            tft.setTextColor(ST77XX_WHITE);
+            tft.setCursor(20, 10);
+            tft.print("Select time now");
+            // Mảng các lựa chọn
+            const char* options[] = {
+                "Feeding Time",   // 0
+                "Time Now",      // 1
+                "Back"                   // 2 (thêm "Back" nếu cần)
+            };
+
+            // Vẽ các lựa chọn với vòng lặp
+            for (int i = 0; i < 3; i++) {
+                tft.setCursor(20, 50 + i * 30);  // Cập nhật vị trí của từng dòng
+                tft.setTextColor(i == _selectedSlot ? ST77XX_YELLOW : ST77XX_WHITE);  // Dùng màu vàng cho lựa chọn đang được chọn
+                tft.print(options[i]);  // In lựa chọn ra màn hình
+            }
+
+
+
+            break;
+        }
+
+
+        case SettingPage::SetHour_1: {
+            char hourStr[16];
+            snprintf(hourStr, sizeof(hourStr), "Hour: %02d", _hour);
+            tft.setCursor(20, 70);
+            tft.setTextSize(4);
+            tft.setTextColor(ST77XX_CYAN);
+            tft.print(hourStr);
+
+            tft.setTextSize(2);
+            tft.setCursor(20, 130);
+            tft.setTextColor(ST77XX_WHITE);
+            tft.print("Rotate to adjust,");
+            tft.setCursor(20, 150);
+            tft.print("Click to confirm");
+            break;
+        }
+
+        case SettingPage::SetMinute_1: {
+            char minStr[16];
+            snprintf(minStr, sizeof(minStr), "Minute: %02d", _minute);
+            tft.setCursor(20, 70);
+            tft.setTextSize(4);
+            tft.setTextColor(ST77XX_CYAN);
+            tft.print(minStr);
+
+            tft.setTextSize(2);
+            tft.setCursor(20, 130);
+            tft.setTextColor(ST77XX_WHITE);
+            tft.print("Rotate to adjust,");
+            tft.setCursor(20, 150);
+            tft.print("Click to confirm");
+            break;
+        }
+
+        case SettingPage::SetSave: {
+            tft.setTextSize(2);
+            tft.setTextColor(ST77XX_WHITE);
+            tft.setCursor(60, 20);
+            tft.print("Save this setting?");
+
+            const char* options[2] = { "YES", "NO" };
+            for (int i = 0; i < 2; i++) {
+                tft.setCursor(60 + i * 160, 100);
+                tft.setTextSize(3);
+                tft.setTextColor(i == _confirmIndex ? ST77XX_GREEN : ST77XX_WHITE);
+                tft.print(options[i]);
+            }
+            break;
+        }
 
         case SettingPage::SelectSlot: {
             tft.setTextSize(2);

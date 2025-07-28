@@ -45,7 +45,11 @@ private:
         SetMinute,
         SetDuration,
         SetEnabled,      
-        ConfirmSave
+        ConfirmSave,
+        NewPage,
+        SetSave,
+        SetMinute_1,
+        SetHour_1             // mới
     };
 
     bool _inSettingMode = false;
