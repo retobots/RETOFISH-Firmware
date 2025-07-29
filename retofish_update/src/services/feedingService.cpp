@@ -259,7 +259,22 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
 void FeedingService::handleButton(Button::Event evt) {
     unsigned long now = millis();
 
-    if (evt == Button::Event::HoldLong) {
+    // if (evt == Button::Event::HoldLong) {
+    //     Serial.println("Vao che do setting");
+    //     _inSettingMode = true;
+    //     _settingPage = SettingPage::NewPage;
+    //     _screenOn = true;
+    //     _screenOnTime = now;
+    //     _selectedSlot = 0;
+    //     _hour = 7;
+    //     _minute = 0;
+    //     _duration = 10;
+    //     _confirmIndex = 0;
+    //     renderSettingPage();
+        
+    //     return;
+    // }
+    if (Button::getInstance().getRawPressedDuration() >= 3000 && !_inSettingMode) {
         Serial.println("Vao che do setting");
         _inSettingMode = true;
         _settingPage = SettingPage::NewPage;
@@ -271,9 +286,9 @@ void FeedingService::handleButton(Button::Event evt) {
         _duration = 10;
         _confirmIndex = 0;
         renderSettingPage();
-        
         return;
     }
+
 
 
 if (evt == Button::Event::Click) {

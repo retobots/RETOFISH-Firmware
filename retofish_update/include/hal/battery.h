@@ -25,7 +25,7 @@ private:
 
     float _voltage = 0;
     uint8_t _level = 0;
-    const unsigned long _interval = 15000; // 30 giây
+    const unsigned long _interval = 15000;  // thoi gian doc adc
     unsigned long _lastUpdate = 0;
     bool _charging = false;
     

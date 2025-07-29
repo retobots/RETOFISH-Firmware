@@ -22,6 +22,7 @@ public:
     int getRotationDelta();       // ⏩ trả về +1/-1 mỗi lần xoay
     int getRotationTotal();       // tổng số đã xoay từ đầu
     void resetRotationTotal();    // đặt lại về 0
+    unsigned long getRawPressedDuration();  
 
 private:
     Button() = default;

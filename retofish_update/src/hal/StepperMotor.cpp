@@ -23,7 +23,7 @@ StepperMotor& StepperMotor::getInstance() {
 }
 
 void StepperMotor::setup() {
-    _stepper.setSpeed(10);  // tốc độ quay: 10 vòng/phút
+    _stepper.setSpeed(10);  // tốc độ quay: 5 vòng/phút
 
     pinMode(in1, OUTPUT);
     pinMode(in2, OUTPUT);

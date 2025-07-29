@@ -74,6 +74,10 @@ void Button::update() {
         if (duration >= 3000 && _lastEvent != Event::HoldLong) {
             _lastEvent = Event::HoldLong; 
         }
+
+            
+        
+
     }
 
         if (_lastState == HIGH && _isPressed) {
@@ -138,3 +142,8 @@ void Button::resetRotationTotal() {
     interrupts();
 }
 
+unsigned long Button::getRawPressedDuration() {
+    if (_isPressed)
+        return millis() - _pressedTime;
+    return 0;
+}
