@@ -132,14 +132,7 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
             }
             if (evt == Button::Event::Click) {
                 if (_selectedSlot == 3) {
-                    // _inSettingMode = false;  //
-                    // _screenOnTime = millis(); //
-                    // auto& display = TftDisplay::getInstance();
-                    // display.clear();
-                    // // ✅ XÓA CACHE để bắt buộc vẽ lại mọi thứ
-                    // display.resetLastStatus();  // bạn sẽ thêm hàm này ở bước dưới
 
-                    // updateDisplayAndLed();
                     _settingPage = SettingPage::NewPage;
                     renderSettingPage();
 
@@ -157,12 +150,8 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
                     _settingPage = SettingPage::SetHour;
                     renderSettingPage();
                 }
-            }    // them if 
-            //     if (evt == Button::Event::DoubleClick && _selectedSlot < 3) {
-            //         bool newState = ScheduleManager::getInstance().toggleSlotEnabled(_selectedSlot);
-            //         Serial.printf("🔁 Slot %d → %s\n", _selectedSlot + 1, newState ? "ENABLED ✔️" : "DISABLED ❌");
-            //         renderSettingPage();
-            // }
+            }   
+
             break;
 
         case SettingPage::SetHour:
@@ -259,22 +248,8 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
 void FeedingService::handleButton(Button::Event evt) {
     unsigned long now = millis();
 
-    // if (evt == Button::Event::HoldLong) {
-    //     Serial.println("Vao che do setting");
-    //     _inSettingMode = true;
-    //     _settingPage = SettingPage::NewPage;
-    //     _screenOn = true;
-    //     _screenOnTime = now;
-    //     _selectedSlot = 0;
-    //     _hour = 7;
-    //     _minute = 0;
-    //     _duration = 10;
-    //     _confirmIndex = 0;
-    //     renderSettingPage();
-        
-    //     return;
-    // }
     if (Button::getInstance().getRawPressedDuration() >= 3000 && !_inSettingMode) {
+        
         Serial.println("Vao che do setting");
         _inSettingMode = true;
         _settingPage = SettingPage::NewPage;
@@ -293,18 +268,18 @@ void FeedingService::handleButton(Button::Event evt) {
 
 if (evt == Button::Event::Click) {
     if (!_screenOn) {
-        // Gọi phương thức bật màn hình và đèn nền từ instance của TftDisplay
+       
         TftDisplay::getInstance().turnOnScreen(); 
 
         _screenOn = true;
         
         _warnSpam = false;
         
-        _screenOnTime = millis(); //
+        _screenOnTime = millis(); 
         auto& display = TftDisplay::getInstance();
         display.clear();
-        // ✅ XÓA CACHE để bắt buộc vẽ lại mọi thứ
-        display.resetLastStatus();  // bạn sẽ thêm hàm này ở bước dưới
+        
+        display.resetLastStatus();  
 
         updateDisplayAndLed();
         Serial.println("Screen ON by Button");
@@ -314,12 +289,10 @@ if (evt == Button::Event::Click) {
 
 
 
-    if (evt == Button::Event::DoubleClick) {
+if (evt == Button::Event::DoubleClick) {
     if (!_screenOn) {
-        _screenOn = true;
-        _screenOnTime = now;
-        _warnSpam = false;
-        Serial.println("Screen ON");
+
+        return; 
     } else {
 
         if (now - _lastManualFeedTime > 30000) {
@@ -331,6 +304,7 @@ if (evt == Button::Event::Click) {
 
             _feedingStartTime = now;
             _lastManualFeedTime = now;
+             
             
             updateDisplayAndLed();
         } else {
@@ -391,7 +365,7 @@ void FeedingService::updateDisplayAndLed() {
 }
 
 
-void FeedingService::handleAutoFeeding() {         /////// auto 
+void FeedingService::handleAutoFeeding() {    
     DateTime nowRtc = RTC::getInstance().now();
     unsigned long now = millis();
 
@@ -459,6 +433,7 @@ void FeedingService::renderSettingPage() {
 
 
         case SettingPage::NewPage: {
+            tft.clear();
             tft.setTextSize(2);
             tft.setTextColor(ST77XX_WHITE);
             tft.setCursor(20, 10);

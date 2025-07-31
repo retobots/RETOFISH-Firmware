@@ -66,51 +66,28 @@ void TftDisplay::setup(uint8_t csPin, uint8_t dcPin, uint8_t rstPin, uint8_t bac
 void TftDisplay::showFullStatus(float voltage, uint8_t level, const char* status, const char* nextFeedTime, bool charging) {
     if (_tft == nullptr) return;
 
-    // Thực hiện xử lý khi điện áp trên 4.3V
+   
     if (voltage > 4.3f) {
-    // Hiển thị trạng thái "Charging..."
-    Serial.println("Charging...");
-    level = 110;  // Đặt level là 110 khi sạc
+        Serial.println("Charging...");
+        char line1[64];
+        snprintf(line1, sizeof(line1), "Pin Charging... ");
 
-    // Ẩn mức độ pin
-    // _tft->fillRect(0, 20, 320, 30, ST77XX_BLACK); // Xóa phần mức độ pin
-    char line1[64];
-    snprintf(line1, sizeof(line1), "Pin Charging... ");
-        // Hiển thị thông báo lên màn hình TFT
-    _tft->setTextSize(2);          // Đặt kích thước chữ
-    _tft->setTextColor(ST77XX_WHITE); // Màu chữ trắng
-    _tft->setCursor(10, 20);      // Vị trí hiển thị trên màn hình
-    _tft->print(line1);            // In thông báo lên màn hình
+        if (String(line1) != _lastLine1 || charging != _lastCharging) {
+            _tft->fillRect(0, 20, 320, 30, ST77XX_BLACK);
+            _tft->setTextSize(3);
+            _tft->setTextColor(ST77XX_CYAN);
+            _tft->setCursor(10, 20);
+            _tft->print(line1);
 
 
-    // Hiển thị biểu tượng sạc đang chớp
-    static unsigned long lastToggle = 0;
-    static int currentBlock = 0; // Biến này theo dõi cục pin nào đang bật/tắt
-    unsigned long now = millis();
 
-    // Vẽ khung viền pin chỉ một lần duy nhất
-    int iconX = 260;
-    int iconY = 20;
-    int iconW = 40;
-    int iconH = 20;
-    int blockWidth = iconW / 5; // Chia biểu tượng thành 5 cục nhỏ
-     _tft->drawRect(iconX, iconY, iconW, iconH, ST77XX_WHITE);  // Vẽ khung viền
-    // Xóa phần mức độ pin và vẽ khung viền một lần duy nhất
-    if (now - lastToggle > 1000) { 
-       
-        // Bật lần lượt từng vạch
-        for (int i = 0; i < 5; i++) {
-            // Điều khiển bật/tắt từng cục pin nhỏ
-            int fillColor = (i <= currentBlock) ? ST77XX_GREEN : ST77XX_BLACK; // Cục pin sáng lên khi đến lượt bật
-            _tft->fillRect(iconX + (i * blockWidth), iconY + 5, blockWidth, iconH - 10, fillColor);
+            _lastLine1 = String(line1);
+            _lastCharging = charging;   // Cập nhật trạng thái sạc
         }
 
-        // Cập nhật cục pin tiếp theo để bật/tắt
-        currentBlock = (currentBlock + 1) % 5; // Quay lại cục pin đầu tiên khi hết
+          
 
-        lastToggle = now;  // Cập nhật thời gian
-    }
-
+    
     } else {
         // Nếu điện áp <= 4.3V, hiển thị thông tin pin bình thường
         char line1[64];
