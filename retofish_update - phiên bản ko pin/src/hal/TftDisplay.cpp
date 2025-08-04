@@ -128,7 +128,7 @@ void TftDisplay::showFullStatus(float voltage, uint8_t level, const char* status
 
     // Hiển thị trạng thái khác như thông tin "Charging", "Idle"
     if (String(status) != _lastStatus) {
-        _tft->fillRect(0, 80, 320, 40, ST77XX_BLACK);
+        _tft->fillRect(0, 40, 320, 60, ST77XX_BLACK);
         _tft->setTextSize(6);
         _tft->setTextColor(ST77XX_YELLOW);
 
@@ -154,7 +154,7 @@ void TftDisplay::showFullStatus(float voltage, uint8_t level, const char* status
         _tft->fillRect(0, 150, 320, 30, ST77XX_BLACK);
         _tft->setTextSize(3);
         _tft->setTextColor(ST77XX_WHITE);
-        _tft->setCursor(10, 150);
+        _tft->setCursor(20, 150);
         _tft->print(timeStr);
 
         _lastNextFeed = String(timeStr);
