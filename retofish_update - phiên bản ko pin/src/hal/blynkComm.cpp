@@ -1,0 +1,11 @@
+#include "hal/BlynkComm.h"
+
+BlynkComm& BlynkComm::getInstance() {
+  static BlynkComm instance;
+  return instance;
+}
+
+void BlynkComm::setup() {
+  // TODO: viết hàm khởi tạo
+}
+
