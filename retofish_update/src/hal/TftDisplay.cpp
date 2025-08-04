@@ -114,11 +114,6 @@ void TftDisplay::showFullStatus(float voltage, uint8_t level, const char* status
             if (charging) {
                 int cx = iconX + iconW / 2;
                 int cy = iconY + iconH / 2;
-                // // Vẽ biểu tượng sạc (⚡)
-                // _tft->drawLine(cx - 5, cy - 10, cx + 1, cy - 4, ST77XX_WHITE);
-                // _tft->drawLine(cx + 1, cy - 4, cx - 3, cy + 4, ST77XX_WHITE);
-                // _tft->drawLine(cx - 3, cy + 4, cx + 3, cy + 12, ST77XX_WHITE);
-                // // Các đường khác cho tia sét
             }
 
             _lastLine1 = String(line1);
