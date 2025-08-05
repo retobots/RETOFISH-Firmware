@@ -63,72 +63,14 @@ void TftDisplay::setup(uint8_t csPin, uint8_t dcPin, uint8_t rstPin, uint8_t bac
 
 
 
+
+
 void TftDisplay::showFullStatus(float voltage, uint8_t level, const char* status, const char* nextFeedTime, bool charging) {
     if (_tft == nullptr) return;
 
-   
-    // if (voltage > 4.3f) {
-    //     Serial.println("Charging...");
-    //     char line1[64];
-    //     snprintf(line1, sizeof(line1), "Pin Charging... ");
-
-    //     if (String(line1) != _lastLine1 || charging != _lastCharging) {
-    //         _tft->fillRect(0, 20, 320, 30, ST77XX_BLACK);
-    //         _tft->setTextSize(3);
-    //         _tft->setTextColor(ST77XX_CYAN);
-    //         _tft->setCursor(10, 20);
-    //         _tft->print(line1);
-
-
-
-    //         _lastLine1 = String(line1);
-    //         _lastCharging = charging;   // Cập nhật trạng thái sạc
-    //     }
-
-          
-
-    
-    // } else {
-    //     // Nếu điện áp <= 4.3V, hiển thị thông tin pin bình thường
-    //     char line1[64];
-    //     snprintf(line1, sizeof(line1), "Pin:%.2fv %d%%", voltage, level);
-
-    //     if (String(line1) != _lastLine1 || charging != _lastCharging) {
-    //         _tft->fillRect(0, 20, 320, 30, ST77XX_BLACK);
-    //         _tft->setTextSize(3);
-    //         _tft->setTextColor(ST77XX_CYAN);
-    //         _tft->setCursor(10, 20);
-    //         _tft->print(line1);
-
-    //         int iconX = 260;
-    //         int iconY = 20;
-    //         int iconW = 40;
-    //         int iconH = 20;
-
-    //         _tft->drawRect(iconX, iconY, iconW, iconH, ST77XX_WHITE);
-    //         _tft->fillRect(iconX + iconW, iconY + 5, 5, 10, ST77XX_WHITE);
-
-    //         int fillW = map(level, 0, 100, 0, iconW - 4);
-    //         _tft->fillRect(iconX + 2, iconY + 2, fillW, iconH - 4, (level < 15) ? ST77XX_RED : ST77XX_GREEN);
-
-    //         if (charging) {
-    //             int cx = iconX + iconW / 2;
-    //             int cy = iconY + iconH / 2;
-    //             // // Vẽ biểu tượng sạc (⚡)
-    //             // _tft->drawLine(cx - 5, cy - 10, cx + 1, cy - 4, ST77XX_WHITE);
-    //             // _tft->drawLine(cx + 1, cy - 4, cx - 3, cy + 4, ST77XX_WHITE);
-    //             // _tft->drawLine(cx - 3, cy + 4, cx + 3, cy + 12, ST77XX_WHITE);
-    //             // // Các đường khác cho tia sét
-    //         }
-
-    //         _lastLine1 = String(line1);
-    //         _lastCharging = charging;   // Cập nhật trạng thái sạc
-    //     }
-    // }
-
-    // Hiển thị trạng thái khác như thông tin "Charging", "Idle"
+    // Kiểm tra và cập nhật phần status nếu có sự thay đổi
     if (String(status) != _lastStatus) {
-        _tft->fillRect(0, 40, 320, 60, ST77XX_BLACK);
+        _tft->fillRect(0, 40, 320, 60, ST77XX_BLACK);  // Xóa phần status cũ
         _tft->setTextSize(6);
         _tft->setTextColor(ST77XX_YELLOW);
 
@@ -145,13 +87,21 @@ void TftDisplay::showFullStatus(float voltage, uint8_t level, const char* status
         _lastStatus = String(status);
     }
 
-    // Hiển thị thời gian thực tế
+    // Hiển thị thời gian thực tế, ẩn giây khi đang trong trạng thái "Feeding"
     DateTime now = RTC::getInstance().now();
     char timeStr[32];
-    snprintf(timeStr, sizeof(timeStr), "Time: %02d:%02d:%02d", now.hour(), now.minute(), now.second());
 
+    if (String(status) == "Feeding") {  // Kiểm tra trạng thái "Feeding"
+        // Nếu đang cho ăn, chỉ hiển thị giờ và phút, không hiển thị giây
+        snprintf(timeStr, sizeof(timeStr), "Time: %02d:%02d", now.hour(), now.minute());
+    } else {
+        // Hiển thị đầy đủ thời gian (giờ, phút, giây)
+        snprintf(timeStr, sizeof(timeStr), "Time: %02d:%02d:%02d", now.hour(), now.minute(), now.second());
+    }
+
+    // Kiểm tra và cập nhật phần thời gian nếu có sự thay đổi
     if (String(timeStr) != _lastNextFeed) {
-        _tft->fillRect(0, 150, 320, 30, ST77XX_BLACK);
+        _tft->fillRect(0, 150, 320, 30, ST77XX_BLACK);  // Xóa phần thời gian cũ
         _tft->setTextSize(3);
         _tft->setTextColor(ST77XX_WHITE);
         _tft->setCursor(20, 150);
@@ -160,7 +110,6 @@ void TftDisplay::showFullStatus(float voltage, uint8_t level, const char* status
         _lastNextFeed = String(timeStr);
     }
 }
-
 
 // === Các hàm tiện ích để vẽ trong chế độ cấu hình ===
 void TftDisplay::clear() {
@@ -203,10 +152,12 @@ void TftDisplay::turnOnScreen() {
     } else {
         Serial.println("Error: Backlight pin not set!");
     }
-    // _screenOn = true;
-    // _screenOnTime = millis();
-    // Serial.println("Screen ON");
 
-    // Optionally clear screen
     _tft->fillScreen(ST77XX_BLACK);
+}
+
+void TftDisplay::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) {
+    if (_tft) {
+        _tft->fillRect(x, y, w, h, color);  // Gọi phương thức fillRect từ thư viện Adafruit_ST7789
+    }
 }

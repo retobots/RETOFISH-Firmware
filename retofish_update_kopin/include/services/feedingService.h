@@ -2,6 +2,8 @@
 #include <Arduino.h>
 #include <RTClib.h>
 #include "hal/Button.h"
+#include <Adafruit_GFX.h>
+#include <Adafruit_ST7789.h>
 
 
 class FeedingService {
@@ -61,5 +63,6 @@ private:
     int _confirmIndex = 0;  // 0: Yes, 1: No
     bool _enabled = true;
     bool _lastChargingState = false;
+    bool _inStandbyMode = true;  
 
 };
