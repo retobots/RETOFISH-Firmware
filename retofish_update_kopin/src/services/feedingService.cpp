@@ -24,6 +24,7 @@ void FeedingService::setup() {
     _lastAutoFeedTime = 0;
     Battery::getInstance().update(true);           // ✅ cập nhật pin ngay khi khởi động
     updateDisplayAndLed();                     // ✅ vẽ trạng thái pin lên màn hình
+    
 }
 
 void FeedingService::loop() {
@@ -95,9 +96,9 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
                 _hour = (_hour + delta + 24) % 24; // Cập nhật giờ khi xoay encoder
                 // Không render lại toàn bộ màn hình, chỉ render lại phần giờ thay đổi
                 auto& tft = TftDisplay::getInstance();
-                tft.fillRect(165, 70, 100, 30, ST77XX_BLACK); // Xóa phần giờ cũ
+                tft.fillRect(160, 70, 100, 30, ST77XX_BLACK); // Xóa phần giờ cũ
                 // renderSettingPage(); // Gọi lại để chỉ render phần giờ
-                renderNumber(165, 70, _hour, 4, ST77XX_CYAN);
+                renderNumber(160, 70, _hour, 4, ST77XX_CYAN);
 
             }
             if (evt == Button::Event::Click) {
@@ -239,11 +240,14 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
             if (evt == Button::Event::Click) {
     if (_confirmIndex == 0) {
 
-        int en1 = ScheduleManager::getInstance().getSlot(0)->enabled;  // Lấy giá trị enabled của slot 1
-        int en2 = ScheduleManager::getInstance().getSlot(1)->enabled;  // Lấy giá trị enabled của slot 2
-        int en3 = ScheduleManager::getInstance().getSlot(2)->enabled;  // Lấy giá trị enabled của slot 3
+        bool en1 = ScheduleManager::getInstance().getSlot(0)->enabled;  // Lấy giá trị enabled của slot 1
+        bool en2 = ScheduleManager::getInstance().getSlot(1)->enabled;  // Lấy giá trị enabled của slot 2
+        bool en3 = ScheduleManager::getInstance().getSlot(2)->enabled;  // Lấy giá trị enabled của slot 3
 
-
+        int time1_eps = (ScheduleManager::getInstance().getSlot(0)->hour)*60 + ScheduleManager::getInstance().getSlot(0)->minute;
+        int time2_esp = (ScheduleManager::getInstance().getSlot(1)->hour)*60 + ScheduleManager::getInstance().getSlot(1)->minute;
+        int time3_esp = (ScheduleManager::getInstance().getSlot(2)->hour)*60 + ScheduleManager::getInstance().getSlot(2)->minute;
+        
 
         // Lưu Time 1 khi người dùng chọn Slot 0
         if (_selectedSlot == 0) {
@@ -252,7 +256,7 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
             Serial.printf("Time 1 saved: %02d:%02d = %d minutes, en1 = %d. en2 = %d en3 = %d\n", _hour, _minute, _time1, en1,en2,en3);
             Serial.printf("Time difference (abs): %d minutes\n", abs(_time2 - time1InMinutes));
             Serial.printf("Time difference (abs): %d minutes\n", abs(_time3 - time1InMinutes));
-                if (en2 != 0 && abs(_time2 - time1InMinutes) < 10) {
+                if (en2   && abs(time2_esp - time1InMinutes) < 10) {
                 auto& tft = TftDisplay::getInstance();
                 tft.clear();
                 tft.setTextSize(2);
@@ -265,7 +269,7 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
                 return;
                 }
                  
-                if (en3 != 0 && abs(_time3 - time1InMinutes) < 10) {
+                if (en3  && abs(time3_esp - time1InMinutes) < 10) {
                 auto& tft = TftDisplay::getInstance();
                 tft.clear();
                 tft.setTextSize(2);
@@ -285,7 +289,7 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
             int minTime2 = _time1 + 10;  // Time 1 + 10 phút (giới hạn cho Time 2)
 
             // Kiểm tra nếu en1 khác 0 và time2InMinutes nhỏ hơn minTime2, yêu cầu nhập lại
-            if (en1 != 0 && abs(_time1 - time2InMinutes) < 10) {
+            if (en1  && abs( time1_eps - time2InMinutes) < 10) {
                 auto& tft = TftDisplay::getInstance();
                 tft.clear();
                 tft.setTextSize(2);
@@ -297,7 +301,7 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
                 renderSettingPage();
                 return;
             }
-            if (en3 != 0 && abs(_time3 - time2InMinutes) < 10) {
+            if (en3  && abs(time3_esp- time2InMinutes) < 10) {
                 auto& tft = TftDisplay::getInstance();
                 tft.clear();
                 tft.setTextSize(2);
@@ -320,7 +324,7 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
             int minTime3 = _time2 + 10;  // Time 2 + 10 phút (giới hạn cho Time 3)
             Serial.printf("Time difference (abs): %d minutes\n", abs(_time2 - time3InMinutes));
             // Kiểm tra nếu en2 khác 0 và time3InMinutes nhỏ hơn minTime3, yêu cầu nhập lại
-            if (en2 != 0 && (abs(_time2 - time3InMinutes) < 10) ) {
+            if (en2  && (abs(time2_esp - time3InMinutes) < 10) ) {
                 auto& tft = TftDisplay::getInstance();
                 tft.clear();
                 tft.setTextSize(2);
@@ -334,10 +338,10 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
             }
 
             // Kiểm tra Time 3 phải lớn hơn Time 1
-            if (en1 != 0 && (abs(_time1 - time3InMinutes) < 10)) {
+            if (en1  && (abs(time1_eps - time3InMinutes) < 10)) {
                 auto& tft = TftDisplay::getInstance();
                 tft.clear();
-                tft.setTextSize(2);
+                tft.setTextSize(2);                                                                                                                                                                                                                                           
                 tft.setTextColor(ST77XX_RED);
                 tft.setCursor(10, 70);
                 tft.print("10 minutes apart time 1");
@@ -349,16 +353,16 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
             _time3 = time3InMinutes;  // Lưu thời gian của Time 3 vào _time3
             Serial.printf("Time 3 saved: %02d:%02d = %d minutes \n en1 = %d en2 = %d en3 = %d \n", _hour, _minute, _time3, en1,en2,en3); // Log Time 3 lưu
         }
+    Serial.printf("✅ Saved: Slot %d = %02d:%02d for %ds (%s)\n",
+    _selectedSlot + 1, _hour, _minute, _duration, _enabled ? "ENABLED" : "DISABLED");
 
-        // Lưu vào lịch và EEPROM
-        ScheduleManager::getInstance().saveToEEPROM();
-        RTC::getInstance().setTime(2025, 7, 24, _hour, _minute, 0);
-        Serial.printf("Time set to: %02d:%02d\n", _hour, _minute);
+    // Cập nhật các slot và lưu vào EEPROM
+    ScheduleManager::getInstance().updateSlot(_selectedSlot, _hour, _minute, _duration, _enabled);
+    ScheduleManager::getInstance().saveToEEPROM();
+    } else {
+          Serial.printf("❌ Cancel Save\n");
+     }
 
-        // Lưu vào lịch và EEPROM
-        ScheduleManager::getInstance().updateSlot(_selectedSlot, _hour, _minute, _duration, _enabled);
-        ScheduleManager::getInstance().saveToEEPROM();
-    }
 
     _settingPage = SettingPage::SelectSlot;
     renderSettingPage();
