@@ -17,6 +17,7 @@ private:
     FeedingService() = default;
 
     void renderSettingPage();  // 👉 hiển thị giao diện cài đặt
+    void renderNumber(int x, int y, int value, int size, uint16_t color); 
 
     void handleButton();              // Xử lý nút nhấn (Click / DoubleClick)
     void handleButton(Button::Event evt);
@@ -64,5 +65,8 @@ private:
     bool _enabled = true;
     bool _lastChargingState = false;
     bool _inStandbyMode = true;  
+    int _time1 = 0;
+    int _time2 = 0;
+    int _time3 = 0;
 
 };

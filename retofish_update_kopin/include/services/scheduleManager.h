@@ -3,6 +3,9 @@
 #include <Arduino.h>
 #include <RTClib.h>
 
+#define TIME1_ADDR 0  // Địa chỉ EEPROM lưu Time 1
+#define TIME2_ADDR 4  // Địa chỉ EEPROM lưu Time 2
+#define TIME3_ADDR 8  // Địa chỉ EEPROM lưu Time 3
 struct FeedTime {
     int hour;
     int minute;
@@ -40,6 +43,10 @@ public:
     void saveToEEPROM();
     void loadFromEEPROM();
 
+        // Thêm các biến lưu trữ Time 1, Time 2, Time 3 từ EEPROM
+    int _time1 = 0;
+    int _time2 = 0;
+    int _time3 = 0;
 
 
 

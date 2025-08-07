@@ -131,8 +131,8 @@ void Battery::readBatteryVoltage() {
     _voltage = v * 1.31f;  // Hiệu chỉnh điện áp nếu có bộ chia điện áp
 
     // In ra giá trị điện áp đã hiệu chỉnh
-    Serial.print("Corrected Voltage: ");
-    Serial.println(_voltage, 2);  // In điện áp đã hiệu chỉnh
+    // Serial.print("Corrected Voltage: ");
+    // Serial.println(_voltage, 2);  // In điện áp đã hiệu chỉnh
 
     if (_voltage > 4.3f) {
     // Nếu điện áp trên 4.3V, hiển thị biểu tượng sạc
@@ -149,9 +149,9 @@ void Battery::readBatteryVoltage() {
 
 
     // In giá trị ADC và mức độ pin
-    Serial.print("Level: ");
-    Serial.print(_level);  // In mức độ pin (từ 0 đến 100)
-    Serial.println("%");   // In phần trăm
+    // Serial.print("Level: ");
+    // Serial.print(_level);  // In mức độ pin (từ 0 đến 100)
+    // Serial.println("%");   // In phần trăm
 
     Serial.println();  // In một dòng trống để dễ phân biệt giữa các lần đọc
 }
