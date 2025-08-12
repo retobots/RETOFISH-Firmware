@@ -205,7 +205,7 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
 
         case SettingPage::SetDuration:
             if (delta != 0) {
-                _duration = constrain(_duration + delta, 4, 10);  // 4-10 số vòng đc chọn
+                _duration = constrain(_duration + delta, 1, 10);  
                 // renderSettingPage();
                 auto& tft = TftDisplay::getInstance();
                 tft.fillRect(240, 70, 100, 30, ST77XX_BLACK); // Xóa phần giờ cũ
@@ -396,7 +396,7 @@ void FeedingService::handleButton(Button::Event evt) {
         _selectedSlot = 0;
         _hour = 7;
         _minute = 0;
-        _duration = 10;
+        _duration = 1;
         _confirmIndex = 0;
         renderSettingPage();
         return;
@@ -440,7 +440,7 @@ if (evt == Button::Event::DoubleClick) {
             _warnSpam = false;
             Serial.println("Feeding START → 4 vòng");
             updateDisplayAndLed();
-            StepperMotor::getInstance().feedForRounds(4);  // ✅ QUAY 4 VÒNG  định
+            StepperMotor::getInstance().feedForRounds(1);  // ✅ QUAY 4 VÒNG  định
 
             _feedingStartTime = now;
             _lastManualFeedTime = now;
@@ -676,12 +676,13 @@ void FeedingService::renderSettingPage() {
 
                         // Hiển thị thời gian nếu có, ngược lại là "--:--"
                         char timeStr[8];
-                        if (ft && ft->enabled) {
-                            snprintf(timeStr, sizeof(timeStr), "%02d:%02d", ft->hour, ft->minute);
-                        } else {
-                            snprintf(timeStr, sizeof(timeStr), "--:--");
-                        }
-
+                        // if (ft && ft->enabled) {
+                        //     snprintf(timeStr, sizeof(timeStr), "%02d:%02d", ft->hour, ft->minute);
+                        // } else {
+                        //     snprintf(timeStr, sizeof(timeStr), "--:--");
+                        // }
+                        snprintf(timeStr, sizeof(timeStr), "%02d:%02d", ft->hour, ft->minute);
+                        
                         tft.setCursor(160, 50 + i * 30);
                         tft.print(timeStr);
 
