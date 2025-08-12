@@ -18,7 +18,7 @@ void StepperMotor::setup() {
 }
 
 void StepperMotor::feedForRounds(int numRounds) {
-    int totalSteps = stepsPerRevolution * numRounds * 2;
+    int totalSteps = stepsPerRevolution * numRounds ;
     _stepper.step(-totalSteps);  // cùng chiều kim đồng hồ
     disableMotor();  // tắt điện sau khi quay
 }
