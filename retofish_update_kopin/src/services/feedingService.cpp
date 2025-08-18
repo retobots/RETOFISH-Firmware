@@ -387,7 +387,7 @@ void FeedingService::handleButton(Button::Event evt) {
 
                 return; 
             } else {
-        
+        TftDisplay::getInstance().clear();  // Đảm bảo màn hình được làm sạch
         Serial.println("Vao che do setting");
         _inSettingMode = true;
         _settingPage = SettingPage::NewPage;
@@ -402,7 +402,6 @@ void FeedingService::handleButton(Button::Event evt) {
         return;
         }
     }
-
 
 
 if (evt == Button::Event::Click) {
@@ -430,31 +429,23 @@ if (evt == Button::Event::Click) {
 
 
 if (evt == Button::Event::DoubleClick) {
-    if (!_screenOn) {
-
+    if (!_screenOn || _feeding) {  // Nếu màn hình tắt hoặc đang cho ăn, không làm gì
         return; 
     } else {
+        _feeding = true;
+        _warnSpam = false;
+        Serial.println("Feeding START → 4 vòng");
+        updateDisplayAndLed();
+        StepperMotor::getInstance().feedForRounds(1);  // Quay 1 vòng
 
-        if (now - _lastManualFeedTime > 30000) {
-            _feeding = true;
-            _warnSpam = false;
-            Serial.println("Feeding START → 4 vòng");
-            updateDisplayAndLed();
-            StepperMotor::getInstance().feedForRounds(1);  // ✅ QUAY 4 VÒNG  định
-
-            _feedingStartTime = now;
-            _lastManualFeedTime = now;
-             
-            
-            updateDisplayAndLed();
-        } else {
-            _warnSpam = true;
-            _warnStartTime = now;
-            Serial.println("Feed ignored → PLEASE WAIT");
-            updateDisplayAndLed();
-        }
+        _feedingStartTime = now;
+        _lastManualFeedTime = now;
+        _lastAnyFeedTime  = now;
+        
+        updateDisplayAndLed();
     }
 }
+
 
 }
 
@@ -470,9 +461,7 @@ void FeedingService::updateDisplayAndLed() {
     } else if (_feeding) {
         led.setStatus(StatusLed::State::Feeding);
         statusStr = "Feeding";
-    // } else if (level < 15) {
-    //     led.setStatus(StatusLed::State::LowBattery);
-    //     statusStr = "Low Battery";
+
     } else {
         led.setStatus(StatusLed::State::Idle);
         statusStr = "Standby";
@@ -505,36 +494,68 @@ void FeedingService::updateDisplayAndLed() {
 }
 
 
+
 void FeedingService::handleAutoFeeding() {    
     DateTime nowRtc = RTC::getInstance().now();
     unsigned long now = millis();
 
-    if (ScheduleManager::getInstance().isTimeToFeed(nowRtc)) {
-        // Bật màn hình khi bắt đầu cho ăn tự động
-        TftDisplay::getInstance().turnOnScreen(); 
-        _feeding = true;
-        Serial.println("[Auto] Feeding START");
-
-        _screenOn = true;
-        _screenOnTime = millis();
-        auto& display = TftDisplay::getInstance();
-        display.clear();
         
-        // Xóa cache để bắt buộc vẽ lại mọi thứ
-        display.resetLastStatus(); 
-
-        // Hiển thị trạng thái "Đang cho ăn"
-        updateDisplayAndLed();  // Cập nhật màn hình hiển thị trạng thái
-
-        // Thực hiện cho ăn tự động theo số vòng đã chọn
-        StepperMotor::getInstance().feedForRounds(_duration); 
-        
-        _feedingStartTime = now;
-        _lastAutoFeedTime = now;
-
-        Serial.println("Screen ON by Auto");
+    if (StepperMotor::getInstance().isMotorActive()) {
+        Serial.println("Motor is already active, skipping Auto feed.");
+        return;  // Nếu động cơ đang quay, bỏ qua mốc auto feeding
     }
+
+    int matched = -1;
+    const FeedTime* matchedSlot = nullptr;
+    for (int i = 0; i < 3; ++i) {
+        const FeedTime* s = ScheduleManager::getInstance().getSlot(i);
+        if (!s) continue;
+        if (!s->enabled) continue; // chỉ slot ENABLED
+        if (nowRtc.hour() == s->hour &&
+            nowRtc.minute() == s->minute &&
+            nowRtc.second() < 5) {
+            matched = i;
+            matchedSlot = s;
+            break;
+        }
+    }
+
+    if (matched == -1) {
+        // Không có slot hợp lệ → thoát
+        return;
+    }
+
+    // 🎯 Dùng duration theo slot (số vòng/quãng thời gian do bạn định nghĩa)
+    const int rounds = matchedSlot->duration;
+
+    // 🖥️ Bật màn hình + chuẩn bị UI
+    TftDisplay::getInstance().turnOnScreen();
+    _feeding = true;
+    Serial.printf("[Auto] Feeding START (slot %d | %02d:%02d | %ds)\n",
+                  matched + 1, matchedSlot->hour, matchedSlot->minute, rounds);
+
+    _screenOn = true;
+    _screenOnTime = now;
+    auto& display = TftDisplay::getInstance();
+    display.clear();
+    display.resetLastStatus();
+
+    // Cập nhật trạng thái hiển thị/LED (ví dụ LED Feeding)
+    updateDisplayAndLed();
+
+    // 🚚 Thực thi cho ăn
+    StepperMotor::getInstance().feedForRounds(rounds);
+
+    // 🕒 Ghi dấu thời gian để chống kích hoạt lại
+    _feedingStartTime = now;
+    _lastAutoFeedTime = now;
+    _lastAnyFeedTime  = now;
+
+    Serial.println("Screen ON by Auto");
 }
+
+
+
 
 
 
@@ -584,7 +605,7 @@ void FeedingService::renderSettingPage() {
             tft.setTextSize(2);
             tft.setTextColor(ST77XX_WHITE);
             tft.setCursor(20, 10);
-            tft.print("Select time now");
+            tft.print("SETUP MENU");
             // Mảng các lựa chọn
             const char* options[] = {
                 "Feeding Time",   // 0
@@ -661,7 +682,7 @@ void FeedingService::renderSettingPage() {
             tft.setTextSize(2);
             tft.setTextColor(ST77XX_WHITE);
             tft.setCursor(20, 10);
-            tft.print("Select feeding time");
+            tft.print("FEEDING SLOT");
 
             const char* labels[4] = { "Timer 1/3", "Timer 2/3", "Timer 3/3", "BACK" };
 

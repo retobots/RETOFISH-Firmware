@@ -17,14 +17,24 @@ void StepperMotor::setup() {
     pinMode(in4, OUTPUT);
 }
 
-void StepperMotor::feedForRounds(int numRounds) {
-    int totalSteps = stepsPerRevolution * numRounds ;
-    _stepper.step(-totalSteps);  // cùng chiều kim đồng hồ
-    disableMotor();  // tắt điện sau khi quay
+// void StepperMotor::feedForRounds(int numRounds) {
+//     int totalSteps = stepsPerRevolution * numRounds ;
+//     _stepper.step(-totalSteps);  // cùng chiều kim đồng hồ
+//     disableMotor();  // tắt điện sau khi quay
+// }
+
+bool StepperMotor::isMotorActive() {
+    return _isMotorActive;  // Trả về trạng thái hiện tại của động cơ
 }
 
+float y = 1;
 
-
+void StepperMotor::feedForRounds(float numRounds) {
+    int totalSteps = (int)(stepsPerRevolution * numRounds * y);  
+    _stepper.step(-totalSteps);  // cùng chiều kim đồng hồ
+    disableMotor();  
+    _isMotorActive = false; 
+}
 
 
 void StepperMotor::disableMotor() {

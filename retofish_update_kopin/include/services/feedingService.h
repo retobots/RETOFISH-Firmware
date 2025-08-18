@@ -41,6 +41,12 @@ private:
     unsigned long _lastManualFeedTime = 0;
     unsigned long _lastAutoFeedTime = 0;
 
+    // FeedingService.h (hoặc ở đầu file .cpp nếu bạn để private ở đó)
+    unsigned long _lastAnyFeedTime = 0;   // mốc lần cho ăn gần nhất (tự động / thủ công)
+   
+    static constexpr unsigned long FEED_COOLDOWN_MS = 30000; // 30s
+
+
         // === Cấu hình bằng encoder === 
     enum class SettingPage {
         SelectSlot,

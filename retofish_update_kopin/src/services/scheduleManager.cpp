@@ -224,7 +224,7 @@ void ScheduleManager::loadFromEEPROM() {
 
         // Kiểm tra hợp lệ, nếu không thì đặt mặc định
         if (_slots[i].hour >= 24 || _slots[i].minute >= 60 || _slots[i].duration < 4 || _slots[i].duration > 10) {
-            _slots[i] = FeedTime(7 + i * 2, 0, 10, true);  // VD: 7h, 9h, 11h
+            _slots[i] = FeedTime(7 + i * 2, 0, 1, true);  // VD: 7h, 9h, 11h
         }
     }
 }

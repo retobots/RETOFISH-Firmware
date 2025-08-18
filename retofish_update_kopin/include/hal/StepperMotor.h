@@ -30,7 +30,9 @@ public:
 
     void setup();
     unsigned long getFeedDuration();
-    void feedForRounds(int numRounds);
+    void feedForRounds(float numRounds);
+
+    bool isMotorActive(); 
 
 private:
     StepperMotor() = default;
@@ -44,4 +46,5 @@ private:
     const int in4 = 32;
 
     void disableMotor();  // Tắt điện các cuộn dây
+    bool _isMotorActive = false; 
 };
