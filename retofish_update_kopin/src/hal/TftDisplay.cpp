@@ -106,9 +106,10 @@ void TftDisplay::showFullStatus(float voltage, uint8_t level, const char* status
         _tft->setTextColor(ST77XX_WHITE);
         _tft->setCursor(20, 150);
         _tft->print(timeStr);
-
         _lastNextFeed = String(timeStr);
     }
+
+
 }
 
 // === Các hàm tiện ích để vẽ trong chế độ cấu hình ===
@@ -136,6 +137,7 @@ void TftDisplay::resetLastStatus() {
     _lastLine1 = "";
     _lastStatus = "";
     _lastNextFeed = "";
+    
 }
 
 void TftDisplay::turnOffScreen() {

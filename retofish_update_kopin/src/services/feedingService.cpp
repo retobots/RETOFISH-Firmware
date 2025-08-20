@@ -259,6 +259,12 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
                 if (en2   && abs(time2_esp - time1InMinutes) < 10) {
                 auto& tft = TftDisplay::getInstance();
                 tft.clear();
+
+                tft.setTextSize(4);
+                tft.setTextColor(ST77XX_RED);
+                tft.setCursor(90, 30);
+                tft.print("ERROR");
+
                 tft.setTextSize(2);
                 tft.setTextColor(ST77XX_RED);
                 tft.setCursor(10, 70);
@@ -272,6 +278,12 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
                 if (en3  && abs(time3_esp - time1InMinutes) < 10) {
                 auto& tft = TftDisplay::getInstance();
                 tft.clear();
+
+                tft.setTextSize(4);
+                tft.setTextColor(ST77XX_RED);
+                tft.setCursor(90, 30);
+                tft.print("ERROR");
+
                 tft.setTextSize(2);
                 tft.setTextColor(ST77XX_RED);
                 tft.setCursor(10, 70);
@@ -292,6 +304,12 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
             if (en1  && abs( time1_eps - time2InMinutes) < 10) {
                 auto& tft = TftDisplay::getInstance();
                 tft.clear();
+
+                tft.setTextSize(4);
+                tft.setTextColor(ST77XX_RED);
+                tft.setCursor(90, 30);
+                tft.print("ERROR");
+
                 tft.setTextSize(2);
                 tft.setTextColor(ST77XX_RED);
                 tft.setCursor(10, 70);
@@ -304,6 +322,12 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
             if (en3  && abs(time3_esp- time2InMinutes) < 10) {
                 auto& tft = TftDisplay::getInstance();
                 tft.clear();
+
+                tft.setTextSize(4);
+                tft.setTextColor(ST77XX_RED);
+                tft.setCursor(90, 30);
+                tft.print("ERROR");
+
                 tft.setTextSize(2);
                 tft.setTextColor(ST77XX_RED);
                 tft.setCursor(10, 70);
@@ -327,6 +351,12 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
             if (en2  && (abs(time2_esp - time3InMinutes) < 10) ) {
                 auto& tft = TftDisplay::getInstance();
                 tft.clear();
+
+                tft.setTextSize(4);
+                tft.setTextColor(ST77XX_RED);
+                tft.setCursor(90, 30);
+                tft.print("ERROR");
+
                 tft.setTextSize(2);
                 tft.setTextColor(ST77XX_RED);
                 tft.setCursor(10, 70);
@@ -341,6 +371,12 @@ void FeedingService::handleSetting(int delta, Button::Event evt) {
             if (en1  && (abs(time1_eps - time3InMinutes) < 10)) {
                 auto& tft = TftDisplay::getInstance();
                 tft.clear();
+
+                tft.setTextSize(4);
+                tft.setTextColor(ST77XX_RED);
+                tft.setCursor(90, 30);
+                tft.print("ERROR");
+
                 tft.setTextSize(2);                                                                                                                                                                                                                                           
                 tft.setTextColor(ST77XX_RED);
                 tft.setCursor(10, 70);
@@ -384,20 +420,26 @@ void FeedingService::handleButton(Button::Event evt) {
 
     if (Button::getInstance().getRawPressedDuration() >= 3000 && !_inSettingMode) {
         if (!_screenOn) {
-
                 return; 
             } else {
-        TftDisplay::getInstance().clear();  // Đảm bảo màn hình được làm sạch
+                
+        auto& tft = TftDisplay::getInstance();
+        tft.clear();
+        delay(50);
+        
         Serial.println("Vao che do setting");
         _inSettingMode = true;
         _settingPage = SettingPage::NewPage;
+        
         _screenOn = true;
-        _screenOnTime = now;
+        _screenOnTime = millis();
         _selectedSlot = 0;
         _hour = 7;
         _minute = 0;
         _duration = 1;
         _confirmIndex = 0;
+        tft.clear();
+        delay(50);
         renderSettingPage();
         return;
         }
@@ -599,8 +641,9 @@ void FeedingService::renderSettingPage() {
 
     switch (_settingPage) {
         
-
+        
         case SettingPage::NewPage: {
+
             tft.clear();
             tft.setTextSize(2);
             tft.setTextColor(ST77XX_WHITE);
@@ -609,7 +652,7 @@ void FeedingService::renderSettingPage() {
             // Mảng các lựa chọn
             const char* options[] = {
                 "Feeding Time",   // 0
-                "Time Now",      // 1
+                "System Time",      // 1
                 "Back"                   // 2 (thêm "Back" nếu cần)
             };
 
@@ -684,7 +727,7 @@ void FeedingService::renderSettingPage() {
             tft.setCursor(20, 10);
             tft.print("FEEDING SLOT");
 
-            const char* labels[4] = { "Timer 1/3", "Timer 2/3", "Timer 3/3", "BACK" };
+            const char* labels[4] = { "Feeding 1/3", "Feeding 2/3", "Feeding 3/3", "BACK" };
 
 
             for (int i = 0; i < 4; i++) {
@@ -721,7 +764,7 @@ void FeedingService::renderSettingPage() {
 
 
             char label[32];
-            snprintf(label, sizeof(label), "Feeding %d/3", _selectedSlot + 1);
+            snprintf(label, sizeof(label), "SET HOUR %d/3", _selectedSlot + 1);
             tft.setCursor(20, 20);
             tft.setTextSize(2);
             tft.setTextColor(ST77XX_YELLOW);
@@ -749,7 +792,7 @@ void FeedingService::renderSettingPage() {
         case SettingPage::SetMinute: {
 
             char label[32];
-            snprintf(label, sizeof(label), "Feeding %d/3", _selectedSlot + 1);
+            snprintf(label, sizeof(label), "SET MINUTE %d/3", _selectedSlot + 1);
             tft.setCursor(20, 20);
             tft.setTextSize(2);
             tft.setTextColor(ST77XX_YELLOW);
@@ -778,7 +821,7 @@ void FeedingService::renderSettingPage() {
 
 
             char label[32];
-            snprintf(label, sizeof(label), "Feeding %d/3", _selectedSlot + 1);
+            snprintf(label, sizeof(label), "SET ROUNDS %d/3", _selectedSlot + 1);
             tft.setCursor(20, 20);
             tft.setTextSize(2);
             tft.setTextColor(ST77XX_YELLOW);
@@ -831,8 +874,8 @@ void FeedingService::renderSettingPage() {
         case SettingPage::ConfirmSave: {
             tft.setTextSize(2);
             tft.setTextColor(ST77XX_WHITE);
-            tft.setCursor(60, 20);
-            tft.print("Save this setting?");
+            tft.setCursor(80, 20);
+            tft.print("Save changes ?");
 
             const char* options[2] = { "YES", "NO" };
             for (int i = 0; i < 2; i++) {

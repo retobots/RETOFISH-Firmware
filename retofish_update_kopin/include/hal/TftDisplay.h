@@ -75,6 +75,7 @@ private:
     String _lastLine1 = "";
     String _lastStatus = "";
     String _lastNextFeed = "";
+    
     bool _lastCharging = false;  // ⚡ Theo dõi thay đổi trạng thái sạc
 
     uint8_t _backlightPin = 0; // Pin điều khiển đèn nền

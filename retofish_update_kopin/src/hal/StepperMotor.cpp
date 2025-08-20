@@ -27,7 +27,7 @@ bool StepperMotor::isMotorActive() {
     return _isMotorActive;  // Trả về trạng thái hiện tại của động cơ
 }
 
-float y = 1;
+float y = 0.3;
 
 void StepperMotor::feedForRounds(float numRounds) {
     int totalSteps = (int)(stepsPerRevolution * numRounds * y);  
