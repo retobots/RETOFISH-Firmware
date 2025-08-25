@@ -33,6 +33,10 @@ public:
     void feedForRounds(float numRounds);
 
     bool isMotorActive(); 
+    void powerOff(); 
+    void setRpm(float rpm);   // đặt tốc độ quay (RPM)
+
+
 
 private:
     StepperMotor() = default;

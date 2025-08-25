@@ -45,7 +45,9 @@ private:
     unsigned long _lastAnyFeedTime = 0;   // mốc lần cho ăn gần nhất (tự động / thủ công)
    
     static constexpr unsigned long FEED_COOLDOWN_MS = 30000; // 30s
-
+    
+    bool        _holdFeeding = false;     // đang “giữ để cho ăn”
+    uint32_t    _lastRawHold = 0;         // độ dài giữ nút ở vòng lặp trước (ms)
 
         // === Cấu hình bằng encoder === 
     enum class SettingPage {

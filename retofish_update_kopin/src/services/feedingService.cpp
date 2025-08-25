@@ -40,6 +40,85 @@ void FeedingService::loop() {
         return;
     }
 
+    // --- Hold-to-Feed: giữ 6s để cho ăn, buông là dừng ngay ---
+    {
+        Button& b = Button::getInstance();
+        uint32_t raw = b.getRawPressedDuration();   // 0 nếu đang thả
+
+            // ===== Cấu hình ramp êm =====
+        static uint32_t rampStartMs = 0;     // mốc bắt đầu ramp
+        static bool     rampArmed   = false; // đang ramp?
+        static const uint16_t RAMP_MS    = 400;   // thời gian ramp ~0.4s
+        static const float    RPM_START  = 2.0f;  // bắt đầu chậm
+        static const float    RPM_TARGET = 10.0f; // tốc độ mục tiêu
+
+        if (!_inSettingMode && _screenOn && raw >= 6000) {
+                if (!_holdFeeding) {
+                    _holdFeeding = true;
+                    _feeding     = true;
+                    _warnSpam    = false;
+
+                    // UI/LED
+                    TftDisplay::getInstance().turnOnScreen();
+                    auto& display = TftDisplay::getInstance();
+                    display.clear();
+                    display.resetLastStatus();
+                    StatusLed::getInstance().setStatus(StatusLed::State::Feeding);
+                    updateDisplayAndLed();
+
+                    // tốc độ nếu bạn đã thêm setRpm() (Cách B)
+                    StepperMotor::getInstance().setRpm(10.0f);  // tuỳ động cơ (28BYJ-48: 6–12 rpm là ổn)
+                    Serial.println("[Hold] Feeding START (1 vòng/lần)");
+                }
+
+                // ---- Quay đúng 1 vòng (BLOCK cho tới khi hết 1 vòng) ----
+                StepperMotor::getInstance().feedForRounds(1.0f);
+                // feedForRounds() của bạn đã disableMotor() ở cuối vòng
+
+                // giữ "sống" để không bị timeout nếu bạn còn kiểm tra timeout
+                _feedingStartTime = millis();
+            }
+
+            // Nếu trước đó đang hold ≥6s mà bây giờ đã BUÔNG → dừng (kết thúc sau vòng vừa rồi)
+            if (_holdFeeding && _lastRawHold >= 6000 && raw == 0) {
+                _holdFeeding = false;
+                _feeding     = false;
+
+                // Tuỳ: feedForRounds() đã disableMotor() rồi; gọi powerOff() cũng không sao
+                // StepperMotor::getInstance().powerOff();
+
+                StatusLed::getInstance().setStatus(StatusLed::State::Idle);
+                _screenOnTime = millis();
+                updateDisplayAndLed();
+                Serial.println("[Hold] Feeding STOP (release)");
+            }
+        // Nếu BUÔNG sau khi giữ từ 3s tới < 6s ⇒ vào Setting
+        if (!_inSettingMode && _screenOn && _lastRawHold >= 3000 && _lastRawHold < 6000 && raw == 0) {
+            auto& tft = TftDisplay::getInstance();
+            tft.clear();
+            delay(50);
+
+            Serial.println("Vao che do setting (3s < hold < 6s)");
+            _inSettingMode = true;
+            _settingPage = SettingPage::NewPage;
+
+            _screenOn = true;
+            _screenOnTime = millis();
+            _selectedSlot = 0;
+            _hour = 7;
+            _minute = 0;
+            _duration = 1;
+            _confirmIndex = 0;
+
+            tft.clear();
+            delay(50);
+            renderSettingPage();
+            // Không return; cho phép phần còn lại của loop chạy tiếp an toàn
+        }
+
+        _lastRawHold = raw; // cập nhật cho khung kế tiếp
+    }
+
 
 
     handleButton(evt);
@@ -418,32 +497,32 @@ void FeedingService::handleButton(Button::Event evt) {
     unsigned long now = millis();
     
 
-    if (Button::getInstance().getRawPressedDuration() >= 3000 && !_inSettingMode) {
-        if (!_screenOn) {
-                return; 
-            } else {
+    // if (Button::getInstance().getRawPressedDuration() >= 3000 && !_inSettingMode) {
+    //     if (!_screenOn) {
+    //             return; 
+    //         } else {
                 
-        auto& tft = TftDisplay::getInstance();
-        tft.clear();
-        delay(50);
+    //     auto& tft = TftDisplay::getInstance();
+    //     tft.clear();
+    //     delay(50);
         
-        Serial.println("Vao che do setting");
-        _inSettingMode = true;
-        _settingPage = SettingPage::NewPage;
+    //     Serial.println("Vao che do setting");
+    //     _inSettingMode = true;
+    //     _settingPage = SettingPage::NewPage;
         
-        _screenOn = true;
-        _screenOnTime = millis();
-        _selectedSlot = 0;
-        _hour = 7;
-        _minute = 0;
-        _duration = 1;
-        _confirmIndex = 0;
-        tft.clear();
-        delay(50);
-        renderSettingPage();
-        return;
-        }
-    }
+    //     _screenOn = true;
+    //     _screenOnTime = millis();
+    //     _selectedSlot = 0;
+    //     _hour = 7;
+    //     _minute = 0;
+    //     _duration = 1;
+    //     _confirmIndex = 0;
+    //     tft.clear();
+    //     delay(50);
+    //     renderSettingPage();
+    //     return;
+    //     }
+    // }
 
 
 if (evt == Button::Event::Click) {
@@ -537,7 +616,8 @@ void FeedingService::updateDisplayAndLed() {
 
 
 
-void FeedingService::handleAutoFeeding() {    
+void FeedingService::handleAutoFeeding() {  
+    if (_holdFeeding) return;   
     DateTime nowRtc = RTC::getInstance().now();
     unsigned long now = millis();
 

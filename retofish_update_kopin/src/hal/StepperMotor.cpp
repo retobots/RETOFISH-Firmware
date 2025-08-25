@@ -17,11 +17,7 @@ void StepperMotor::setup() {
     pinMode(in4, OUTPUT);
 }
 
-// void StepperMotor::feedForRounds(int numRounds) {
-//     int totalSteps = stepsPerRevolution * numRounds ;
-//     _stepper.step(-totalSteps);  // cùng chiều kim đồng hồ
-//     disableMotor();  // tắt điện sau khi quay
-// }
+
 
 bool StepperMotor::isMotorActive() {
     return _isMotorActive;  // Trả về trạng thái hiện tại của động cơ
@@ -43,4 +39,13 @@ void StepperMotor::disableMotor() {
     digitalWrite(in3, LOW);
     digitalWrite(in4, LOW);
 }
+void StepperMotor::powerOff() {
+    disableMotor();
+}
 
+void StepperMotor::setRpm(float rpm) {
+    // Giới hạn an toàn cho 28BYJ-48 (bạn chỉnh tùy động cơ/driver)
+    if (rpm < 1.0f)  rpm = 1.0f;
+    if (rpm > 20.0f) rpm = 20.0f;
+    _stepper.setSpeed(rpm);
+}
