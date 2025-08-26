@@ -31,6 +31,7 @@ public:
     void setup();
     unsigned long getFeedDuration();
     void feedForRounds(float numRounds);
+    void feedForRounds1(float numRounds);
 
     bool isMotorActive(); 
     void powerOff(); 

@@ -74,11 +74,11 @@ void FeedingService::loop()
             Serial.println("[Hold] Feeding START (1 vòng/lần)");
         }
 
-        // ---- Quay đúng 1 vòng (BLOCK cho tới khi hết 1 vòng) ----
-        StepperMotor::getInstance().feedForRounds(1.0f);
-        // feedForRounds() của bạn đã disableMotor() ở cuối vòng
+        
+        StepperMotor::getInstance().feedForRounds1(0.03f);
+        
 
-        // giữ "sống" để không bị timeout nếu bạn còn kiểm tra timeout
+        
         _feedingStartTime = millis();
     }
 
@@ -88,15 +88,14 @@ void FeedingService::loop()
         _holdFeeding = false;
         _feeding = false;
 
-        // Tuỳ: feedForRounds() đã disableMotor() rồi; gọi powerOff() cũng không sao
-        // StepperMotor::getInstance().powerOff();
-
         StatusLed::getInstance().setStatus(StatusLed::State::Idle);
         _screenOnTime = millis();
         updateDisplayAndLed();
         Serial.println("[Hold] Feeding STOP (release)");
+        ///////////////////////////////////////////////
+        StepperMotor::getInstance().powerOff();
     }
-    // Nếu BUÔNG sau khi giữ từ 3s tới < 6s ⇒ vào Setting
+
     if (!_inSettingMode && _screenOn && _lastRawHold >= 3000 && _lastRawHold < 6000 && raw == 0)
     {
         TftDisplay &tft = TftDisplay::getInstance();

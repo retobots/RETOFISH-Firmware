@@ -2,6 +2,8 @@
 
 #include "hal/StepperMotor.h"
 #include "hal/StepperMotor.h"
+#define STEPPER_FEED_SCALE 0.30f  // Tỉ lệ quay cho động cơ
+
 
 StepperMotor& StepperMotor::getInstance() {
     static StepperMotor instance;
@@ -23,12 +25,18 @@ bool StepperMotor::isMotorActive() {
     return _isMotorActive;  // Trả về trạng thái hiện tại của động cơ
 }
 
-float y = 0.3;
+
 
 void StepperMotor::feedForRounds(float numRounds) {
-    int totalSteps = (int)(stepsPerRevolution * numRounds * y);  
+    int totalSteps = (int)(stepsPerRevolution * numRounds * STEPPER_FEED_SCALE);  
     _stepper.step(-totalSteps);  // cùng chiều kim đồng hồ
     disableMotor();  
+    _isMotorActive = false; 
+}
+void StepperMotor::feedForRounds1(float numRounds) {
+    int totalSteps = (int)(stepsPerRevolution * numRounds * STEPPER_FEED_SCALE);  
+    _stepper.step(-totalSteps);  // cùng chiều kim đồng hồ
+    // disableMotor();  
     _isMotorActive = false; 
 }
 
