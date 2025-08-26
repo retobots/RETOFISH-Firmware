@@ -75,7 +75,7 @@ void FeedingService::loop()
         }
 
         
-        StepperMotor::getInstance().feedForRounds1(0.03f);
+        StepperMotor::getInstance().feedForRounds1(0.03f); // hung
         
 
         
