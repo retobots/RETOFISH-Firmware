@@ -47,6 +47,9 @@
 #include <Adafruit_ST7789.h>
 #include <SPI.h>
 
+#define TFT_WIDTH 172
+#define TFT_HEIGHT 320
+
 class TftDisplay {
 public:
     static TftDisplay& getInstance();
