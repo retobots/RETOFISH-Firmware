@@ -2,7 +2,7 @@
 
 #include "hal/StepperMotor.h"
 #include "hal/StepperMotor.h"
-#define STEPPER_FEED_SCALE 0.3f  // Tỉ lệ quay cho động cơ
+#define STEPPER_FEED_SCALE 0.1f  // Tỉ lệ quay cho động cơ
 
 
 StepperMotor& StepperMotor::getInstance() {
