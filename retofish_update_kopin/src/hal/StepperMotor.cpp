@@ -2,7 +2,7 @@
 
 #include "hal/StepperMotor.h"
 #include "hal/StepperMotor.h"
-#define STEPPER_FEED_SCALE 0.30f  // Tỉ lệ quay cho động cơ
+#define STEPPER_FEED_SCALE 0.3f  // Tỉ lệ quay cho động cơ
 
 
 StepperMotor& StepperMotor::getInstance() {
@@ -11,7 +11,7 @@ StepperMotor& StepperMotor::getInstance() {
 }
 
 void StepperMotor::setup() {
-    _stepper.setSpeed(10);  // tốc độ quay: 5 vòng/phút
+    _stepper.setSpeed(5);  // tốc độ quay: 5 vòng/phút
 
     pinMode(in1, OUTPUT);
     pinMode(in2, OUTPUT);
@@ -27,16 +27,9 @@ bool StepperMotor::isMotorActive() {
 
 
 
-void StepperMotor::feedForRounds(float numRounds) {
-    int totalSteps = (int)(stepsPerRevolution * numRounds * STEPPER_FEED_SCALE);  
+void StepperMotor::feedingLevel(float level) {
+    int totalSteps = (int)(stepsPerRevolution * level * STEPPER_FEED_SCALE);  
     _stepper.step(-totalSteps);  // cùng chiều kim đồng hồ
-    disableMotor();  
-    _isMotorActive = false; 
-}
-void StepperMotor::feedForRounds1(float numRounds) {
-    int totalSteps = (int)(stepsPerRevolution * numRounds * STEPPER_FEED_SCALE);  
-    _stepper.step(-totalSteps);  // cùng chiều kim đồng hồ
-    // disableMotor();  
     _isMotorActive = false; 
 }
 
@@ -46,9 +39,6 @@ void StepperMotor::disableMotor() {
     digitalWrite(in2, LOW);
     digitalWrite(in3, LOW);
     digitalWrite(in4, LOW);
-}
-void StepperMotor::powerOff() {
-    disableMotor();
 }
 
 void StepperMotor::setRpm(float rpm) {

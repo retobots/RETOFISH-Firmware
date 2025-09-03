@@ -1,26 +1,26 @@
 
 
-
 #include "hal/Button.h"
 
-Button& Button::getInstance() {
+Button &Button::getInstance()
+{
     static Button instance;
     return instance;
 }
 
 // Bảng mã Gray decoding 4-bit cho encoder
 const int8_t encoder_table[16] = {
-     0, -1,  1,  0,
-     1,  0,  0, -1,
-    -1,  0,  0,  1,
-     0,  1, -1,  0
-};
+    0, -1, 1, 0,
+    1, 0, 0, -1,
+    -1, 0, 0, 1,
+    0, 1, -1, 0};
 
 volatile int Button::_rotationDelta = 0;
 volatile int Button::_rotationTotal = 0;
 volatile uint8_t Button::_lastAB = 0;
 
-void Button::setup(uint8_t swPin, uint8_t pinA, uint8_t pinB) {
+void Button::setup(uint8_t swPin, uint8_t pinA, uint8_t pinB)
+{
     _pinSW = swPin;
     _pinA = pinA;
     _pinB = pinB;
@@ -37,63 +37,76 @@ void Button::setup(uint8_t swPin, uint8_t pinA, uint8_t pinB) {
     attachInterrupt(digitalPinToInterrupt(_pinB), handleEncoderISR, CHANGE);
 }
 
-void IRAM_ATTR Button::handleEncoderISR() {
-    uint8_t a = digitalRead(34);  
-    uint8_t b = digitalRead(35);  
+void IRAM_ATTR Button::handleEncoderISR()
+{
+    uint8_t a = digitalRead(34);
+    uint8_t b = digitalRead(35);
     uint8_t ab = (a << 1) | b;
 
     uint8_t index = (_lastAB << 2) | ab;
     int8_t direction = encoder_table[index & 0x0F];
 
-    if (direction != 0) {
+    if (direction != 0)
+    {
         _rotationDelta += direction;
         _rotationTotal += direction;
-        
     }
 
     _lastAB = ab;
 }
 
-void Button::update() {
+void Button::update()
+{
     bool currentState = digitalRead(_pinSW);
     unsigned long now = millis();
 
-    if (_lastState != currentState) {
+    if (_lastState != currentState)
+    {
         _lastDebounceTime = now;
         _lastState = currentState;
     }
 
-    if ((now - _lastDebounceTime) > 50) {
-        if (_lastState == LOW && !_isPressed) {
+    if ((now - _lastDebounceTime) > 50)
+    {
+        if (_lastState == LOW && !_isPressed)
+        {
+            Serial.println("_pressedTime = now");
             _pressedTime = now;
             _isPressed = true;
         }
 
-        if (_lastState == LOW && _isPressed) {
-        unsigned long duration = now - _pressedTime;
-        if (duration >= 3000 && _lastEvent != Event::HoldLong) {
-            _lastEvent = Event::HoldLong; 
+        if (_lastState == LOW && _isPressed)
+        {
+            unsigned long duration = now - _pressedTime;
+            if (duration >= 3000 && _lastEvent != Event::HoldLong)
+            {
+                _lastEvent = Event::HoldLong;
+            }
         }
 
-            
-        
-
-    }
-
-        if (_lastState == HIGH && _isPressed) {
+        if (_lastState == HIGH && _isPressed)
+        {
             unsigned long duration = now - _pressedTime;
 
-            if (duration < 300) {
-                if (_waitingDoubleClick && (now - _doubleClickTimer) < 500) {
+            if (duration < 300)
+            {
+                if (_waitingDoubleClick && (now - _doubleClickTimer) < 500)
+                {
                     _lastEvent = Event::DoubleClick;
                     _waitingDoubleClick = false;
-                } else {
+                }
+                else
+                {
                     _waitingDoubleClick = true;
                     _doubleClickTimer = now;
                 }
-            } else if (duration < 1000) {
+            }
+            else if (duration < 1000)
+            {
                 _lastEvent = Event::HoldShort;
-            } else {
+            }
+            else
+            {
                 _lastEvent = Event::HoldLong;
             }
 
@@ -101,19 +114,22 @@ void Button::update() {
         }
     }
 
-    if (_waitingDoubleClick && (now - _doubleClickTimer) > 500) {
+    if (_waitingDoubleClick && (now - _doubleClickTimer) > 500)
+    {
         _waitingDoubleClick = false;
         _lastEvent = Event::Click;
     }
 }
 
-Button::Event Button::getEvent() {
+Button::Event Button::getEvent()
+{
     Event e = _lastEvent;
     _lastEvent = Event::None;
     return e;
 }
 
-int Button::getRotationDelta() {
+int Button::getRotationDelta()
+{
 
     static int remainder = 0;
 
@@ -129,21 +145,32 @@ int Button::getRotationDelta() {
     return fullSteps;
 }
 
-int Button::getRotationTotal() {
+int Button::getRotationTotal()
+{
     noInterrupts();
     int total = _rotationTotal;
     interrupts();
     return total;
 }
 
-void Button::resetRotationTotal() {
+void Button::resetRotationTotal()
+{
     noInterrupts();
     _rotationTotal = 0;
     interrupts();
 }
 
-unsigned long Button::getRawPressedDuration() {
+unsigned long Button::getRawPressedDuration()
+{
+    unsigned long deltaT;
     if (_isPressed)
-        return millis() - _pressedTime;
-    return 0;
+    {
+        deltaT = millis() - _pressedTime;
+        return deltaT;
+    }
+    else
+    {
+        // Serial.println("return 0");
+        return 0;
+    }
 }
