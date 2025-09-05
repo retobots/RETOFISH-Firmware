@@ -48,5 +48,4 @@ private:
     const int in3 = 25;
     const int in4 = 32;
 
-    bool _isMotorActive = false;
 };

@@ -14,18 +14,7 @@
 // Service layer
 #include "services/FeedingService.h"
 #include "services/ScheduleManager.h"
-#include "services/StatusReporter.h"
-
-static bool screenOn = false;
-static unsigned long screenOnTime = 0;
-
-static bool feeding = false;
-static unsigned long feedingStartTime = 0;
-
-static bool warnSpam = false;
-static unsigned long warnStartTime = 0;
-
-static unsigned long lastManualFeedTime = 0;
+#include "services/UIService.h"
 
 
 void setup() {
@@ -43,27 +32,20 @@ void setup() {
   
   // TftDisplay::getInstance().setup(5, 2, 4);
   TftDisplay::getInstance().setup(5, 2, 4, 14); 
-    screenOn = true;
-    screenOnTime = millis();
 
   StepperMotor::getInstance().setup();
   BlynkComm::getInstance().setup();
 
   // --- Service layer initialization ---
+  UIService::getInstance().setup();
   FeedingService::getInstance().setup();
   ScheduleManager::getInstance().setup();
-  StatusReporter::getInstance().setup();
-
-  lastManualFeedTime = millis() - 30000;
  
 }
 
 
 void loop() {
-
     FeedingService::getInstance().loop();
-    delay(20);
-
 }
 
 

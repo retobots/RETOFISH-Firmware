@@ -41,6 +41,11 @@ void drawBMPFromArray(Adafruit_ST7789 *tft, const unsigned char *bmp, uint32_t b
     }
 }
 
+bool TftDisplay::isScreenON()
+{
+    return _screenOn;
+}
+
 void TftDisplay::setup(uint8_t csPin, uint8_t dcPin, uint8_t rstPin, uint8_t backlightPin)
 {
     if (_tft == nullptr)
@@ -62,10 +67,11 @@ void TftDisplay::setup(uint8_t csPin, uint8_t dcPin, uint8_t rstPin, uint8_t bac
         drawBMPFromArray(_tft, logo_bmp, logo_bmp_len, 0, 0);
         delay(2000);
         _tft->fillScreen(ST77XX_BLACK);
+        _screenOn = true;
     }
 }
 
-void TftDisplay::showFullStatus(float voltage, uint8_t level, const char *status, const char *nextFeedTime, bool charging)
+void TftDisplay::showFullStatus(const char *status, const char *nextFeedTime)
 {
     if (_tft == nullptr)
         return;
@@ -115,23 +121,18 @@ void TftDisplay::showFullStatus(float voltage, uint8_t level, const char *status
         _tft->print(timeStr);
         _lastNextFeed = String(timeStr);
     }
+    _screenOn = true;
 }
 
 // === Các hàm tiện ích để vẽ trong chế độ cấu hình ===
 void TftDisplay::clear()
 {
-
-    SemaphoreHandle_t lcdMutex = xSemaphoreCreateMutex();
-
-    xSemaphoreTake(lcdMutex, portMAX_DELAY);
-
     // Khi vẽ:
     if (_tft)
     {
         _tft->fillScreen(ST77XX_BLACK);
     }
     // ... các lệnh vẽ khác
-    xSemaphoreGive(lcdMutex);
 }
 
 void TftDisplay::setCursor(int16_t x, int16_t y)
@@ -169,7 +170,7 @@ void TftDisplay::turnOffScreen()
 {
     digitalWrite(_backlightPin, LOW); // Tắt đèn nền
     _screenOn = false;
-    Serial.println("Screen OFF");
+    // Serial.println("Screen OFF");
 }
 
 void TftDisplay::turnOnScreen()
@@ -179,12 +180,13 @@ void TftDisplay::turnOnScreen()
     {
         digitalWrite(_backlightPin, HIGH); // Bật đèn nền
         Serial.println("Backlight turned ON");
+        _screenOn = true;
     }
     else
     {
         Serial.println("Error: Backlight pin not set!");
     }
-
+    
     _tft->fillScreen(ST77XX_BLACK);
 }
 
@@ -194,4 +196,9 @@ void TftDisplay::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t c
     {
         _tft->fillRect(x, y, w, h, color); // Gọi phương thức fillRect từ thư viện Adafruit_ST7789
     }
+}
+
+void TftDisplay::setScreen(bool s)
+{
+    _screenOn = s;
 }

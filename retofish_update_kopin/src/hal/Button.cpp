@@ -1,6 +1,7 @@
 
 
 #include "hal/Button.h"
+#include <services/UIService.h>
 
 Button &Button::getInstance()
 {
@@ -58,6 +59,8 @@ void IRAM_ATTR Button::handleEncoderISR()
 void Button::update()
 {
     bool currentState = digitalRead(_pinSW);
+    // Serial.print("currentState: ");
+    // Serial.println(currentState);
     unsigned long now = millis();
 
     if (_lastState != currentState)
@@ -68,23 +71,22 @@ void Button::update()
 
     if ((now - _lastDebounceTime) > 50)
     {
-        if (_lastState == LOW && !_isPressed)
+
+        if (_lastState == LOW && !_isPressed) // press button
         {
             Serial.println("_pressedTime = now");
             _pressedTime = now;
             _isPressed = true;
         }
-
-        if (_lastState == LOW && _isPressed)
+        else if (_lastState == LOW && _isPressed)
         {
             unsigned long duration = now - _pressedTime;
-            if (duration >= 3000 && _lastEvent != Event::HoldLong)
+            if (duration >= 6000 && _lastEvent == Event::None)
             {
-                _lastEvent = Event::HoldLong;
+                _lastEvent = Event::HoldFeeding;
             }
         }
-
-        if (_lastState == HIGH && _isPressed)
+        else if (_lastState == HIGH && _isPressed) // release button
         {
             unsigned long duration = now - _pressedTime;
 
@@ -101,13 +103,19 @@ void Button::update()
                     _doubleClickTimer = now;
                 }
             }
-            else if (duration < 1000)
+            else if (duration > 2000 && duration < 6000)
             {
-                _lastEvent = Event::HoldShort;
+                if (_lastEvent == Event::None)
+                {
+                    _lastEvent = Event::HoldSetting;
+                }
             }
-            else
+            else if (duration >= 6000)
             {
-                _lastEvent = Event::HoldLong;
+                if (_lastEvent == Event::HoldFeeding)
+                {
+                    _lastEvent = Event::None;
+                }
             }
 
             _isPressed = false;
@@ -124,8 +132,13 @@ void Button::update()
 Button::Event Button::getEvent()
 {
     Event e = _lastEvent;
-    _lastEvent = Event::None;
+    _lastEvent = Button::Event::None;
     return e;
+}
+
+void Button::setEvent(Event e)
+{
+    _lastEvent = e;
 }
 
 int Button::getRotationDelta()
@@ -145,21 +158,6 @@ int Button::getRotationDelta()
     return fullSteps;
 }
 
-int Button::getRotationTotal()
-{
-    noInterrupts();
-    int total = _rotationTotal;
-    interrupts();
-    return total;
-}
-
-void Button::resetRotationTotal()
-{
-    noInterrupts();
-    _rotationTotal = 0;
-    interrupts();
-}
-
 unsigned long Button::getRawPressedDuration()
 {
     unsigned long deltaT;
@@ -172,5 +170,114 @@ unsigned long Button::getRawPressedDuration()
     {
         // Serial.println("return 0");
         return 0;
+    }
+}
+
+void Button::handleEvent(Event evt)
+{
+    unsigned long now = millis();
+    TftDisplay *tft = &TftDisplay::getInstance();
+    UIService *ui = &UIService::getInstance();
+    FeedingService *feed = &FeedingService::getInstance();
+    if (evt == Event::Click)
+    {
+        if (!tft->isScreenON())
+        {
+
+            TftDisplay::getInstance().turnOnScreen();
+            ui->setScreenOnTime(millis());
+            ui->setScreen(UIService::Screen::Home);
+
+            TftDisplay &display = TftDisplay::getInstance();
+            display.clear();
+
+            display.resetLastStatus();
+
+            ui->updateHomePage();
+            Serial.println("Screen ON by Button");
+        }
+        else
+        {
+            UIService::getInstance().setScreenOnTime(millis());
+        }
+    }
+    else if (evt == Event::DoubleClick)
+    {
+        if (!tft->isScreenON() || feed->isFeeding() || UIService::getInstance().getScreen() != UIService::Screen::Home)
+        { // Nếu màn hình tắt hoặc đang cho ăn, không làm gì
+            return;
+        }
+        else
+        {
+            feed->setFeeding(true);
+            ui->setScreen(UIService::Screen::Home);
+            ui->updateHomePage();
+            feed->feeding(1.0f, true);
+            feed->setFeeding(false);
+            ui->updateHomePage(); // Cập nhật trạng thái sau khi cho ăn xong
+
+            // Sau khi cho ăn xong, chuyển vào chế độ "chờ"
+            // Đặt _inStandbyMode thành true (vào chế độ "chờ")
+            ui->setScreenOnTime(millis()); // Ghi lại thời gian vào chế độ "chờ"
+        }
+    }
+    else if (evt == Event::HoldSetting)
+    {
+        if (!tft->isScreenON() || feed->isFeeding() || UIService::getInstance().getScreen() != UIService::Screen::Home)
+        {
+            return;
+        }
+        else
+        {
+            TftDisplay &tft = TftDisplay::getInstance();
+
+            Serial.println("Vao che do setting (3s < hold < 6s)");
+            ui->setScreen(UIService::Screen::Setting);
+            ui->setSettingPageState(UIService::SettingPageState::NewPage);
+            // Không return; cho phép phần còn lại của loop chạy tiếp an toàn
+        }
+    }
+    else if (evt == Event::HoldFeeding)
+    {
+        if (!tft->isScreenON() || UIService::getInstance().getScreen() != UIService::Screen::Home)
+        {
+            return;
+        }
+        else
+        {
+            if (!_holdFeeding)
+            {
+                _holdFeeding = true;
+                feed->setFeeding(true);
+
+                // UI/LED
+                TftDisplay::getInstance().turnOnScreen();
+                TftDisplay &display = TftDisplay::getInstance();
+                display.clear();
+                display.resetLastStatus();
+                StatusLed::getInstance().setStatus(StatusLed::State::Feeding);
+                ui->updateHomePage();
+            }
+            feed->feeding(0.3f, false);
+            Serial.println("StepperMotor::getInstance().feedingLevel(0.3f)");
+        }
+    }
+    else if (evt == Event::None)
+    {
+        if (_holdFeeding)
+        {
+            _holdFeeding = false;
+
+            StatusLed::getInstance().setStatus(StatusLed::State::Idle);
+            Serial.println("[Hold] Feeding STOP (release)");
+            ///////////////////////////////////////////////
+            feed->feeding(0, false);
+            feed->setFeeding(false);
+            ui->updateHomePage(); // Cập nhật trạng thái sau khi cho ăn xong
+
+            // Sau khi cho ăn xong, chuyển vào chế độ "chờ"
+            ui->setScreen(UIService::Screen::Home); // Đặt _inStandbyMode thành true (vào chế độ "chờ")
+            ui->setScreenOnTime(millis());          // Ghi lại thời gian vào chế độ "chờ"
+        }
     }
 }

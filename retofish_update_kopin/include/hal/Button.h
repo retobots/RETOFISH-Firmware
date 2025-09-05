@@ -3,30 +3,30 @@
 #pragma once
 #include <Arduino.h>
 
-class Button {
+class Button
+{
 public:
-    enum class Event {
+    static Button &getInstance();
+    enum class Event
+    {
         None,
         Click,
-        HoldShort,
-        HoldLong,
+        HoldSetting,
+        HoldFeeding,
         DoubleClick
     };
-
-    static Button& getInstance();
-
     void setup(uint8_t swPin = 19, uint8_t pinA = 34, uint8_t pinB = 35);
-    void update();  // Xử lý nút nhấn
-    Event getEvent();
+    void update(); // Xử lý nút nhấn
+    Button::Event getEvent();
+    void setEvent(Button::Event e);
 
-    int getRotationDelta();       // ⏩ trả về +1/-1 mỗi lần xoay
-    int getRotationTotal();       // tổng số đã xoay từ đầu
-    void resetRotationTotal();    // đặt lại về 0
-    unsigned long getRawPressedDuration();  
+    int getRotationDelta(); // ⏩ trả về +1/-1 mỗi lần xoay
+    unsigned long getRawPressedDuration();
+    void handleEvent(Button::Event evt);
 
 private:
     Button() = default;
-    static void IRAM_ATTR handleEncoderISR();  // ISR cho encoder
+    static void IRAM_ATTR handleEncoderISR(); // ISR cho encoder
 
     // Encoder
     volatile static int _rotationDelta;
@@ -42,8 +42,7 @@ private:
     bool _isPressed = false;
     bool _waitingDoubleClick = false;
     unsigned long _doubleClickTimer = 0;
-    Event _lastEvent = Event::None;
+    Button::Event _lastEvent = Button::Event::None;
     static volatile uint8_t _lastAB;
+    bool _holdFeeding = false; // đang “giữ để cho ăn”
 };
-
-

@@ -21,16 +21,13 @@ void StepperMotor::setup() {
 
 
 
-bool StepperMotor::isMotorActive() {
-    return _isMotorActive;  // Trả về trạng thái hiện tại của động cơ
-}
+
 
 
 
 void StepperMotor::feedingLevel(float level) {
     int totalSteps = (int)(stepsPerRevolution * level * STEPPER_FEED_SCALE);  
     _stepper.step(-totalSteps);  // cùng chiều kim đồng hồ
-    _isMotorActive = false; 
 }
 
 

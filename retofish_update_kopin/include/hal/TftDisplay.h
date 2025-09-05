@@ -36,7 +36,6 @@
 
 //     uint8_t _backlightPin = 0; // Pin điều khiển đèn nền
 //     bool _screenOn = true;     // Trạng thái màn hình: bật hay tắt
-//     uint32_t _screenOnTime = 0; // Thời gian màn hình được bật
 //     bool _warnSpam = false;     // Cảnh báo spam
 // };
 
@@ -68,9 +67,12 @@ public:
     // Thêm phương thức fillRect
     void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
 
-    void showFullStatus(float voltage, uint8_t level, const char* status, const char* nextFeedTime, bool charging);
+    void showFullStatus(const char* status, const char* nextFeedTime);
+    bool isScreenON();
+    void setScreen(bool s);
 
 private:
+
     TftDisplay() = default;
 
     Adafruit_ST7789* _tft = nullptr;
@@ -84,5 +86,4 @@ private:
     uint8_t _backlightPin = 0; // Pin điều khiển đèn nền
     bool _screenOn = true;     // Trạng thái màn hình: bật hay tắt
     uint32_t _screenOnTime = 0; // Thời gian màn hình được bật
-    bool _warnSpam = false;     // Cảnh báo spam
 };
