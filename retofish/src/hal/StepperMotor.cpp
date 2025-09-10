@@ -2,7 +2,7 @@
 
 #include "hal/StepperMotor.h"
 #include "hal/StepperMotor.h"
-#define STEPPER_FEED_SCALE 0.1f  // Tỉ lệ quay cho động cơ
+#include "hal/config.h"
 
 
 StepperMotor& StepperMotor::getInstance() {
@@ -11,7 +11,7 @@ StepperMotor& StepperMotor::getInstance() {
 }
 
 void StepperMotor::setup() {
-    _stepper.setSpeed(5);  // tốc độ quay: 5 vòng/phút
+    _stepper.setSpeed(StepperCfg::MOTOR_SPEED);  // tốc độ quay: 5 vòng/phút
 
     pinMode(in1, OUTPUT);
     pinMode(in2, OUTPUT);
@@ -19,14 +19,8 @@ void StepperMotor::setup() {
     pinMode(in4, OUTPUT);
 }
 
-
-
-
-
-
-
-void StepperMotor::feedingLevel(float level) {
-    int totalSteps = (int)(stepsPerRevolution * level * STEPPER_FEED_SCALE);  
+void StepperMotor::feeding(float level) {
+    int totalSteps = (int)(stepsPerRevolution * level * StepperCfg::FEEDING_SCALE);  
     _stepper.step(-totalSteps);  // cùng chiều kim đồng hồ
 }
 
@@ -38,9 +32,9 @@ void StepperMotor::disableMotor() {
     digitalWrite(in4, LOW);
 }
 
-void StepperMotor::setRpm(float rpm) {
+void StepperMotor::setRpm(uint8_t rpm) {
     // Giới hạn an toàn cho 28BYJ-48 (bạn chỉnh tùy động cơ/driver)
-    if (rpm < 1.0f)  rpm = 1.0f;
-    if (rpm > 20.0f) rpm = 20.0f;
+    if (rpm < StepperCfg::MOTOR_MIN_SPEED)  rpm = StepperCfg::MOTOR_MIN_SPEED;
+    if (rpm > StepperCfg::MOTOR_MAX_SPEED) rpm = StepperCfg::MOTOR_MAX_SPEED;
     _stepper.setSpeed(rpm);
 }

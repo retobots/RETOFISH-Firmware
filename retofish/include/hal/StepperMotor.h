@@ -31,10 +31,9 @@ public:
 
     void setup();
     unsigned long getFeedDuration();
-    void feedingLevel(float level);
+    void feeding(float level);
 
-    bool isMotorActive();
-    void setRpm(float rpm); // đặt tốc độ quay (RPM)
+    void setRpm(uint8_t rpm); // đặt tốc độ quay (RPM)
     void disableMotor();    // Tắt điện các cuộn dây
 
 private:

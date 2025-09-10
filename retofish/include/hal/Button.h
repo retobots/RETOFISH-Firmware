@@ -2,6 +2,8 @@
 
 #pragma once
 #include <Arduino.h>
+#include "hal/config.h"
+#include "hal/TftDisplay.h"
 
 class Button
 {
@@ -13,6 +15,7 @@ public:
         Click,
         HoldSetting,
         HoldFeeding,
+        StopHoldFeeding,
         DoubleClick
     };
     void setup(uint8_t swPin = 19, uint8_t pinA = 34, uint8_t pinB = 35);
@@ -28,9 +31,6 @@ private:
     Button() = default;
     static void IRAM_ATTR handleEncoderISR(); // ISR cho encoder
 
-    // Encoder
-    volatile static int _rotationDelta;
-    volatile static int _rotationTotal;
     uint8_t _pinA, _pinB;
     static uint8_t _lastStateA;
 
@@ -43,6 +43,5 @@ private:
     bool _waitingDoubleClick = false;
     unsigned long _doubleClickTimer = 0;
     Button::Event _lastEvent = Button::Event::None;
-    static volatile uint8_t _lastAB;
     bool _holdFeeding = false; // đang “giữ để cho ăn”
 };

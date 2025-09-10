@@ -2,6 +2,8 @@
 #pragma once
 #include <Arduino.h>
 #include <RTClib.h>
+#include <EEPROM.h>
+
 
 #define TIME1_ADDR 0  // Địa chỉ EEPROM lưu Time 1
 #define TIME2_ADDR 4  // Địa chỉ EEPROM lưu Time 2
@@ -21,9 +23,6 @@ public:
 
     void setup();
 
-    // Kiểm tra có đến giờ cho ăn không (slot hợp lệ và enabled)
-    bool isTimeToFeed(const DateTime& now);
-
     // Trả về slot tiếp theo (dù có enabled hay không – dùng cho hiển thị)
     const FeedTime* getNextFeedTime(const DateTime& now);
 
@@ -33,12 +32,6 @@ public:
     // Cập nhật 1 slot (giờ, phút, duration)
     // void updateSlot(int index, int hour, int minute, int duration);
     void updateSlot(int index, int hour, int minute, int duration, bool enabled);  // ✅ SỬA THÊM enabled
-
-
-    // Bật/tắt trạng thái enable của slot → trả về trạng thái sau khi đổi
-    bool toggleSlotEnabled(int index);
-    // kiểm tra trùng lập 
-    bool isTimeUsedByOtherSlot(int currentIndex, int hour, int minute);
 
     void saveToEEPROM();
     void loadFromEEPROM();
@@ -58,7 +51,5 @@ private:
         {7, 0, 10, true},
         {11, 30, 10, true},
         {18, 0, 10, true}
-
-    
     };
 };

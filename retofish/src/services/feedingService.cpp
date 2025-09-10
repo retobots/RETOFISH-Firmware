@@ -1,117 +1,105 @@
-
+#include <Arduino.h>
 #include "services/FeedingService.h"
-#include "hal/Battery.h"
-#include "hal/RTC.h"
-#include "hal/Button.h"
-#include "hal/TftDisplay.h"
-#include "hal/StepperMotor.h"
-#include "hal/StatusLed.h"
+#include "services/UIService.h"
 #include "services/ScheduleManager.h"
-#include <Adafruit_GFX.h>
-#include <Adafruit_ST7789.h>
+#include "hal/TftDisplay.h"
+#include "hal/RTC.h"
+#include "hal/StepperMotor.h"
+#include "hal/config.h"
 
-FeedingService &FeedingService::getInstance()
-{
-    static FeedingService instance;
-    return instance;
+FeedingService& FeedingService::getInstance() {
+  static FeedingService instance;
+  return instance;
 }
 
-void FeedingService::setup()
-{
-
-    _lastAutoFeedTime = 0;
-    Battery::getInstance().update(true);       // ✅ cập nhật pin ngay khi khởi động
-    UIService::getInstance().updateHomePage(); // ✅ vẽ trạng thái pin lên màn hình
+void FeedingService::setup() {
+  _feeding = false;
+  _lastAutoFeedTime = 0;
+  UIService::getInstance().updateHomePage(); // vẽ trạng thái ban đầu
 }
 
-void FeedingService::loop()
-{
-    Button &btn = Button::getInstance();
-    btn.update();
-    Button::Event evt = btn.getEvent();
-    // Serial.print("Event: ");
-    // Serial.println((int)evt);
-    // Serial.print("Screen: ");
-    // Serial.println((int)UIService::getInstance().getScreen());
-    btn.handleEvent(evt);
-    handleAutoFeeding();
-    UIService::getInstance().updateScreen(evt);
-}
+void FeedingService::handleAutoFeeding() {
+  const unsigned long nowMs = millis();
 
-void FeedingService::handleAutoFeeding()
-{
-    if (millis() - _lastAutoFeedTime < 5000)
-    {
-        return;
+  // Cooldown: không xét auto-feed quá dày
+  if (nowMs - _lastAutoFeedTime < FeedCfg::AUTOTRIGGER_COOLDOWN_MS) {
+    return;
+  }
+
+  // Không tự cho ăn khi đang cho ăn thủ công / UI không ở Home
+  if (_feeding || UIService::getInstance().getScreen() != UIService::Screen::Home) {
+    return;
+  }
+
+  // Lấy thời gian hiện tại từ RTC
+  const DateTime nowRtc = RTC::getInstance().now();
+
+  // Tìm slot phù hợp
+  const FeedTime* matchedSlot = nullptr;
+  int matchedIndex = -1;
+
+  for (int i = 0; i < 3; ++i) {
+    const FeedTime* s = ScheduleManager::getInstance().getSlot(i);
+    if (!s)            { continue; }           // không có dữ liệu slot -> bỏ qua
+    if (!s->enabled)   { continue; }           // chỉ xét slot đang bật
+
+    const bool hitHour   = (nowRtc.hour()   == s->hour);
+    const bool hitMinute = (nowRtc.minute() == s->minute);
+    const bool hitSecond = (nowRtc.second() <  FeedCfg::TRIGGER_WINDOW_SECONDS);
+
+    if (hitHour && hitMinute && hitSecond) {
+      matchedSlot = s;
+      matchedIndex = i;
+      break;
     }
-    else
-    {
-        _lastAutoFeedTime = 0;
-    }
-    if (_feeding || UIService::getInstance().getScreen() != UIService::Screen::Home)
-    {
-        return;
-    }
-    DateTime nowRtc = RTC::getInstance().now();
-    unsigned long now = millis();
+  }
 
-    const FeedTime *matchedSlot = nullptr;
-    for (int i = 0; i < 3; ++i)
-    {
-        const FeedTime *s = ScheduleManager::getInstance().getSlot(i);
-        if (!s)
-            return;
-        if (!s->enabled)
-            return; // chỉ slot ENABLED
-        if (nowRtc.hour() == s->hour &&
-            nowRtc.minute() == s->minute &&
-            nowRtc.second() < 2)
-        {
+  if (!matchedSlot) {
+    return; // không có slot nào khớp
+  }
 
-            matchedSlot = s;
-            Serial.printf("[Auto] Feeding START (slot %d | %02d:%02d | %ds)\n",
-                          i + 1, matchedSlot->hour, matchedSlot->minute, (float)matchedSlot->duration);
-            // 🖥️ Bật màn hình + chuẩn bị UI
-            TftDisplay::getInstance().turnOnScreen();
-            _feeding = true;
-            UIService::getInstance().setScreenOnTime(now);
-            TftDisplay &display = TftDisplay::getInstance();
-            display.clear();
-            display.resetLastStatus();
+  // Chuẩn bị hiển thị
+  auto& tft = TftDisplay::getInstance();
+  auto& ui  = UIService::getInstance();
 
-            // Cập nhật trạng thái hiển thị/LED (ví dụ LED Feeding)
-            UIService::getInstance().updateHomePage(); // Cập nhật trạng thái sau khi cho ăn xong
-            // 🚚 Thực thi cho ăn
-            feeding((float)matchedSlot->duration, true);
-            _feeding = false;
-            _lastAutoFeedTime = millis();
-            UIService::getInstance().updateHomePage(); // Cập nhật trạng thái sau khi cho ăn xong
+  tft.turnOnScreen();
+  tft.clear();
+  tft.resetLastStatus();
+  ui.setScreenOnTime(nowMs);
 
-            // Sau khi cho ăn xong, chuyển vào chế độ "chờ"
-            UIService::getInstance().setScreenOnTime(millis()); // Ghi lại thời gian vào chế độ "chờ"
+  // Đánh dấu đang feeding
+  _feeding = true;
 
-            // 🕒 Ghi dấu thời gian để chống kích hoạt lại
-            Serial.println("Screen ON by Auto");
-            break;
-        }
-    }
+  // Log & cập nhật UI trước khi chạy
+  Serial.printf("[Auto] Feeding START (slot %d | %02d:%02d | %.2f)\n",
+                matchedIndex + 1, matchedSlot->hour, matchedSlot->minute,
+                static_cast<float>(matchedSlot->duration));
+  ui.updateHomePage();
+
+  // Thực thi cho ăn
+  feeding(static_cast<float>(matchedSlot->duration), /*disableAfterFeeding=*/true);
+
+  // Kết thúc feeding
+  _feeding = false;
+  _lastAutoFeedTime = millis(); // ghi dấu thời gian để chống kích hoạt lại
+  ui.updateHomePage();
+  ui.setScreenOnTime(millis()); // ở lại chế độ "chờ" một lúc cho người dùng quan sát
+
+  Serial.println("[Auto] Feeding DONE");
 }
 
-bool FeedingService::isFeeding()
-{
-    return _feeding;
+bool FeedingService::isFeeding() {
+  return _feeding;
 }
 
-void FeedingService::setFeeding(bool f)
-{
-    _feeding = f;
+void FeedingService::setFeeding(bool f) {
+  _feeding = f;
 }
 
-void FeedingService::feeding(float level, bool disableAfterFeeding)
-{
-    StepperMotor::getInstance().feedingLevel(level);
-    if (disableAfterFeeding)
-    {
-        StepperMotor::getInstance().disableMotor();
-    }
+void FeedingService::feeding(float level, bool disableAfterFeeding) {
+  // level: số "vòng" hay "mức" – tùy StepperMotor::feeding() định nghĩa
+  StepperMotor::getInstance().feeding(level);
+  if (disableAfterFeeding) {
+    StepperMotor::getInstance().disableMotor();
+  }
 }

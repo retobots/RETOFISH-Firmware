@@ -3,6 +3,8 @@
 
 #include <Arduino.h>
 #include <RTClib.h>
+#include <Wire.h>
+#include <RTClib.h>
 
 class RTC {
 public:
@@ -17,4 +19,5 @@ public:
 
 private:
   RTC() = default;
+  RTC_DS1307 _ds1307;
 };

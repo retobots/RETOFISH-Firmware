@@ -1,7 +1,24 @@
-
-
 #include "hal/Button.h"
-#include <services/UIService.h>
+#include "services/UIService.h"
+
+// ========= Internal data =========
+static constexpr int8_t kGrayStep[16] = {
+    0, -1, 1, 0,
+    1, 0, 0, -1,
+    -1, 0, 0, 1,
+    0, 1, -1, 0};
+
+// ESP32 critical section cho vùng ISR<->loop (optional nhưng “đẹp”)
+static portMUX_TYPE s_isrMux = portMUX_INITIALIZER_UNLOCKED;
+
+// Pins cho ISR đọc theo cấu hình runtime
+static uint8_t s_pinA = 0;
+static uint8_t s_pinB = 0;
+
+// Shared giữa ISR và loop
+volatile static int _rotationDelta = 0;
+volatile static int _rotationTotal = 0;
+volatile static uint8_t _lastAB = 0;
 
 Button &Button::getInstance()
 {
@@ -9,22 +26,13 @@ Button &Button::getInstance()
     return instance;
 }
 
-// Bảng mã Gray decoding 4-bit cho encoder
-const int8_t encoder_table[16] = {
-    0, -1, 1, 0,
-    1, 0, 0, -1,
-    -1, 0, 0, 1,
-    0, 1, -1, 0};
-
-volatile int Button::_rotationDelta = 0;
-volatile int Button::_rotationTotal = 0;
-volatile uint8_t Button::_lastAB = 0;
-
 void Button::setup(uint8_t swPin, uint8_t pinA, uint8_t pinB)
 {
     _pinSW = swPin;
     _pinA = pinA;
     _pinB = pinB;
+    s_pinA = pinA;
+    s_pinB = pinB;
 
     pinMode(_pinSW, INPUT_PULLUP);
     pinMode(_pinA, INPUT_PULLUP);
@@ -40,28 +48,27 @@ void Button::setup(uint8_t swPin, uint8_t pinA, uint8_t pinB)
 
 void IRAM_ATTR Button::handleEncoderISR()
 {
-    uint8_t a = digitalRead(34);
-    uint8_t b = digitalRead(35);
-    uint8_t ab = (a << 1) | b;
+    const uint8_t a = digitalRead(s_pinA);
+    const uint8_t b = digitalRead(s_pinB);
+    const uint8_t ab = (a << 1) | b;
 
-    uint8_t index = (_lastAB << 2) | ab;
-    int8_t direction = encoder_table[index & 0x0F];
+    const uint8_t idx = (_lastAB << 2) | ab;
+    const int8_t dir = kGrayStep[idx & 0x0F];
 
-    if (direction != 0)
+    if (dir != 0)
     {
-        _rotationDelta += direction;
-        _rotationTotal += direction;
+        portENTER_CRITICAL_ISR(&s_isrMux);
+        _rotationDelta += dir;
+        _rotationTotal += dir;
+        portEXIT_CRITICAL_ISR(&s_isrMux);
     }
-
     _lastAB = ab;
 }
 
 void Button::update()
 {
-    bool currentState = digitalRead(_pinSW);
-    // Serial.print("currentState: ");
-    // Serial.println(currentState);
-    unsigned long now = millis();
+    const bool currentState = digitalRead(_pinSW);
+    const unsigned long now = millis();
 
     if (_lastState != currentState)
     {
@@ -69,30 +76,28 @@ void Button::update()
         _lastState = currentState;
     }
 
-    if ((now - _lastDebounceTime) > 50)
+    if ((now - _lastDebounceTime) > BtnCfg::DEBOUNCE_MS)
     {
-
-        if (_lastState == LOW && !_isPressed) // press button
+        if (_lastState == LOW && !_isPressed)
         {
-            Serial.println("_pressedTime = now");
             _pressedTime = now;
             _isPressed = true;
         }
         else if (_lastState == LOW && _isPressed)
         {
-            unsigned long duration = now - _pressedTime;
-            if (duration >= 6000 && _lastEvent == Event::None)
+            const unsigned long duration = now - _pressedTime;
+            if (duration >= BtnCfg::HOLD_FEEDING_MIN && _lastEvent == Event::None)
             {
                 _lastEvent = Event::HoldFeeding;
             }
         }
-        else if (_lastState == HIGH && _isPressed) // release button
+        else if (_lastState == HIGH && _isPressed)
         {
-            unsigned long duration = now - _pressedTime;
+            const unsigned long duration = now - _pressedTime;
 
             if (duration < 300)
             {
-                if (_waitingDoubleClick && (now - _doubleClickTimer) < 500)
+                if (_waitingDoubleClick && (now - _doubleClickTimer) < BtnCfg::DOUBLECLICK_MS)
                 {
                     _lastEvent = Event::DoubleClick;
                     _waitingDoubleClick = false;
@@ -103,26 +108,21 @@ void Button::update()
                     _doubleClickTimer = now;
                 }
             }
-            else if (duration > 2000 && duration < 6000)
+            else if (duration > BtnCfg::HOLD_SETTING_MIN && duration < BtnCfg::HOLD_FEEDING_MIN)
             {
                 if (_lastEvent == Event::None)
-                {
                     _lastEvent = Event::HoldSetting;
-                }
             }
-            else if (duration >= 6000)
+            else if (duration >= BtnCfg::HOLD_FEEDING_MIN)
             {
-                if (_lastEvent == Event::HoldFeeding)
-                {
-                    _lastEvent = Event::None;
-                }
+                if (_holdFeeding)
+                    _lastEvent = Event::StopHoldFeeding;
             }
-
             _isPressed = false;
         }
     }
 
-    if (_waitingDoubleClick && (now - _doubleClickTimer) > 500)
+    if (_waitingDoubleClick && (now - _doubleClickTimer) > BtnCfg::DOUBLECLICK_MS)
     {
         _waitingDoubleClick = false;
         _lastEvent = Event::Click;
@@ -132,7 +132,7 @@ void Button::update()
 Button::Event Button::getEvent()
 {
     Event e = _lastEvent;
-    _lastEvent = Button::Event::None;
+    _lastEvent = Event::None;
     return e;
 }
 
@@ -143,141 +143,106 @@ void Button::setEvent(Event e)
 
 int Button::getRotationDelta()
 {
-
     static int remainder = 0;
 
-    noInterrupts();
+    portENTER_CRITICAL(&s_isrMux);
     int raw = _rotationDelta;
     _rotationDelta = 0;
-    interrupts();
+    portEXIT_CRITICAL(&s_isrMux);
 
     raw += remainder;
-    int fullSteps = raw / 4;
-    remainder = raw % 4;
-
-    return fullSteps;
+    const int steps = raw / BtnCfg::STEPS_PER_DETENT;
+    remainder = raw % BtnCfg::STEPS_PER_DETENT;
+    return steps;
 }
 
 unsigned long Button::getRawPressedDuration()
 {
-    unsigned long deltaT;
     if (_isPressed)
-    {
-        deltaT = millis() - _pressedTime;
-        return deltaT;
-    }
-    else
-    {
-        // Serial.println("return 0");
-        return 0;
-    }
+        return millis() - _pressedTime;
+    return 0;
 }
 
 void Button::handleEvent(Event evt)
 {
-    unsigned long now = millis();
-    TftDisplay *tft = &TftDisplay::getInstance();
-    UIService *ui = &UIService::getInstance();
-    FeedingService *feed = &FeedingService::getInstance();
-    if (evt == Event::Click)
+    auto &tft = TftDisplay::getInstance();
+    auto &ui = UIService::getInstance();
+    auto &feed = FeedingService::getInstance();
+    auto &led = StatusLed::getInstance();
+
+    const bool screenOn = tft.isScreenON();
+    const bool isHome = (ui.getScreen() == UIService::Screen::Home);
+    const bool feedingOn = feed.isFeeding();
+
+    switch (evt)
     {
-        if (!tft->isScreenON())
+    case Event::Click:
+        if (!screenOn)
         {
-
-            TftDisplay::getInstance().turnOnScreen();
-            ui->setScreenOnTime(millis());
-            ui->setScreen(UIService::Screen::Home);
-
-            TftDisplay &display = TftDisplay::getInstance();
-            display.clear();
-
-            display.resetLastStatus();
-
-            ui->updateHomePage();
+            tft.turnOnScreen();
+            ui.setScreenOnTime(millis());
+            ui.setScreen(UIService::Screen::Home);
+            tft.clear();
+            tft.resetLastStatus();
+            ui.updateHomePage();
             Serial.println("Screen ON by Button");
         }
         else
         {
-            UIService::getInstance().setScreenOnTime(millis());
+            ui.setScreenOnTime(millis());
         }
-    }
-    else if (evt == Event::DoubleClick)
-    {
-        if (!tft->isScreenON() || feed->isFeeding() || UIService::getInstance().getScreen() != UIService::Screen::Home)
-        { // Nếu màn hình tắt hoặc đang cho ăn, không làm gì
-            return;
-        }
-        else
-        {
-            feed->setFeeding(true);
-            ui->setScreen(UIService::Screen::Home);
-            ui->updateHomePage();
-            feed->feeding(1.0f, true);
-            feed->setFeeding(false);
-            ui->updateHomePage(); // Cập nhật trạng thái sau khi cho ăn xong
+        break;
 
-            // Sau khi cho ăn xong, chuyển vào chế độ "chờ"
-            // Đặt _inStandbyMode thành true (vào chế độ "chờ")
-            ui->setScreenOnTime(millis()); // Ghi lại thời gian vào chế độ "chờ"
-        }
-    }
-    else if (evt == Event::HoldSetting)
-    {
-        if (!tft->isScreenON() || feed->isFeeding() || UIService::getInstance().getScreen() != UIService::Screen::Home)
-        {
-            return;
-        }
-        else
-        {
-            TftDisplay &tft = TftDisplay::getInstance();
+    case Event::DoubleClick:
+        if (!screenOn || feedingOn || !isHome)
+            break;
+        feed.setFeeding(true);
+        ui.setScreen(UIService::Screen::Home);
+        ui.updateHomePage();
+        feed.feeding(1.0f, true);
+        feed.setFeeding(false);
+        ui.updateHomePage();
+        ui.setScreenOnTime(millis());
+        break;
 
-            Serial.println("Vao che do setting (3s < hold < 6s)");
-            ui->setScreen(UIService::Screen::Setting);
-            ui->setSettingPageState(UIService::SettingPageState::NewPage);
-            // Không return; cho phép phần còn lại của loop chạy tiếp an toàn
-        }
-    }
-    else if (evt == Event::HoldFeeding)
-    {
-        if (!tft->isScreenON() || UIService::getInstance().getScreen() != UIService::Screen::Home)
-        {
-            return;
-        }
-        else
-        {
-            if (!_holdFeeding)
-            {
-                _holdFeeding = true;
-                feed->setFeeding(true);
+    case Event::HoldSetting:
+        if (!screenOn || feedingOn || !isHome)
+            break;
+        Serial.println("Vao che do setting (3s < hold < 6s)");
+        ui.setScreen(UIService::Screen::Setting);
+        ui.setSettingPageState(UIService::SettingPageState::NewPage);
+        break;
 
-                // UI/LED
-                TftDisplay::getInstance().turnOnScreen();
-                TftDisplay &display = TftDisplay::getInstance();
-                display.clear();
-                display.resetLastStatus();
-                StatusLed::getInstance().setStatus(StatusLed::State::Feeding);
-                ui->updateHomePage();
-            }
-            feed->feeding(0.3f, false);
-            Serial.println("StepperMotor::getInstance().feedingLevel(0.3f)");
+    case Event::HoldFeeding:
+        if (!screenOn || !isHome)
+            break;
+        if (!_holdFeeding)
+        {
+            _holdFeeding = true;
+            feed.setFeeding(true);
+            tft.turnOnScreen();
+            tft.clear();
+            tft.resetLastStatus();
+            led.updateLed(StatusLed::State::Feeding);
+            ui.updateHomePage();
         }
-    }
-    else if (evt == Event::None)
-    {
+        feed.feeding(0.3f, false);
+        // hạn chế Serial ở path nhanh
+        break;
+
+    case Event::StopHoldFeeding:
+    case Event::None:
         if (_holdFeeding)
         {
             _holdFeeding = false;
-
-            StatusLed::getInstance().setStatus(StatusLed::State::Idle);
+            led.updateLed(StatusLed::State::Idle);
             Serial.println("[Hold] Feeding STOP (release)");
-            ///////////////////////////////////////////////
-            feed->feeding(0, false);
-            feed->setFeeding(false);
-            ui->updateHomePage(); // Cập nhật trạng thái sau khi cho ăn xong
-
-            // Sau khi cho ăn xong, chuyển vào chế độ "chờ"
-            ui->setScreen(UIService::Screen::Home); // Đặt _inStandbyMode thành true (vào chế độ "chờ")
-            ui->setScreenOnTime(millis());          // Ghi lại thời gian vào chế độ "chờ"
+            feed.feeding(0, false);
+            feed.setFeeding(false);
+            ui.updateHomePage();
+            ui.setScreen(UIService::Screen::Home);
+            ui.setScreenOnTime(millis());
         }
+        break;
     }
 }

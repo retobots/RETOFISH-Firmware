@@ -1,8 +1,7 @@
 
 
 #include "hal/TftDisplay.h"
-#include "hal/image_bmp_data.h"
-#include "hal/RTC.h"
+
 
 TftDisplay &TftDisplay::getInstance()
 {
