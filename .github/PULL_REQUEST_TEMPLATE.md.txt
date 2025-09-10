@@ -1,0 +1,7 @@
+## Summary
+- What & Why
+
+## Checklist
+- [ ] Tested locally
+- [ ] Updated docs/readme
+- [ ] Non-commercial license respected

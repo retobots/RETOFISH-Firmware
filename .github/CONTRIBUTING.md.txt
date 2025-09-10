@@ -1,0 +1,5 @@
+# Contributing
+1) Fork → tạo branch `feat/...` hoặc `fix/...`
+2) Commit theo Conventional Commits (feat:, fix:, docs:, chore:, refactor:)
+3) Mở PR kèm mô tả, ảnh/chứng cứ nếu có
+4) Đồng ý license CC-BY-NC-SA cho phần đóng góp
