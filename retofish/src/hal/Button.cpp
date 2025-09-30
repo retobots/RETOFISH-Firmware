@@ -237,7 +237,7 @@ void Button::handleEvent(Event evt)
             _holdFeeding = false;
             led.updateLed(StatusLed::State::Idle);
             Serial.println("[Hold] Feeding STOP (release)");
-            feed.feeding(0, false);
+            feed.feeding(0, true);
             feed.setFeeding(false);
             ui.updateHomePage();
             ui.setScreen(UIService::Screen::Home);
